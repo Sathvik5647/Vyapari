@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useNavigation } from "expo-router";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Alert,
   Dimensions,
@@ -24,12 +26,20 @@ const GOOGLE_MAPS_APIKEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const { width, height } = Dimensions.get("window");
 
 const CATEGORIES = [
-  { id: "1", name: "Grocery", icon: "cart-outline" },
-  { id: "2", name: "Pharmacy", icon: "medical-outline" },
-  { id: "3", name: "Clothing", icon: "shirt-outline" },
-  { id: "4", name: "Accessories", icon: "watch-outline" },
-  { id: "5", name: "Electronics", icon: "hardware-chip-outline" },
+  { id: "1", name: "Grocery", icon: "cart-outline", color: "#4CAF50" },
+  { id: "2", name: "Pharmacy", icon: "medical-outline", color: "#F44336" },
+  { id: "3", name: "Clothing", icon: "shirt-outline", color: "#2196F3" },
+  { id: "4", name: "Accessories", icon: "watch-outline", color: "#9C27B0" },
+  { id: "5", name: "Electronics", icon: "hardware-chip-outline", color: "#FF9800" },
 ];
+
+const getCategoryDetails = (categoryName: string) => {
+  const cat = CATEGORIES.find(c => c.name.toLowerCase() === (categoryName || "").toLowerCase());
+  return {
+    icon: cat ? cat.icon : "storefront-outline",
+    color: cat ? cat.color : "#0F6E56"
+  };
+};
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,9 +54,17 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
   const mapRef = useRef<MapView>(null);
 
   const isDark = colorScheme === "dark";
+
+  // Hide tab bar when a store is selected
+  useEffect(() => {
+    navigation.getParent()?.setOptions({
+      tabBarStyle: selectedStore ? { display: "none" } : undefined,
+    });
+  }, [navigation, selectedStore]);
 
   useEffect(() => {
     setupLocationAndData();
@@ -100,18 +118,28 @@ export default function HomeScreen() {
   };
 
   const handleMarkerPress = (store: any) => {
-    setNavigateMode(false);
     setSelectedStore(store);
+    setNavigateMode(true); // Automatically show navigation preview
 
-    mapRef.current?.animateToRegion(
-      {
-        latitude: store.latitude - 0.005,
-        longitude: store.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      },
-      500,
-    );
+    // Animate map to show both user and destination to preview the route
+    if (userLocation && store) {
+      mapRef.current?.fitToCoordinates(
+        [
+          {
+            latitude: userLocation.latitude,
+            longitude: userLocation.longitude,
+          },
+          {
+            latitude: store.latitude,
+            longitude: store.longitude,
+          },
+        ],
+        {
+          edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
+          animated: true,
+        },
+      );
+    }
   };
 
   const handleDirectionsPress = () => {
@@ -182,30 +210,32 @@ export default function HomeScreen() {
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
+        showsPointsOfInterest={false}
         showsUserLocation
         showsMyLocationButton={false}
         userInterfaceStyle={isDark ? "dark" : "light"}
         onPress={() => setSelectedStore(null)}
       >
-        {stores.map((store) => (
-          <Marker
-            key={`marker-${store.id}`}
-            coordinate={{
-              latitude: store.latitude,
-              longitude: store.longitude,
-            }}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleMarkerPress(store);
-            }}
-          >
-            <View
-              style={[styles.markerBadge, { backgroundColor: colors.primary }]}
+        {stores.map((store) => {
+          const { icon, color } = getCategoryDetails(store.category);
+          return (
+            <Marker
+              key={`marker-${store.id}`}
+              coordinate={{
+                latitude: store.latitude,
+                longitude: store.longitude,
+              }}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleMarkerPress(store);
+              }}
             >
-              <Ionicons name="storefront" size={16} color="#FFF" />
-            </View>
-          </Marker>
-        ))}
+              <View style={[styles.waterDropMarker, { backgroundColor: color }]}>
+                <Ionicons name={icon as any} size={16} color="#FFF" style={styles.waterDropIcon} />
+              </View>
+            </Marker>
+          );
+        })}
 
         {/* Draw In-App Route to Selected Store */}
         {navigateMode && userLocation && selectedStore && GOOGLE_MAPS_APIKEY ? (
@@ -314,7 +344,6 @@ export default function HomeScreen() {
         <View
           style={[
             styles.bottomCardContainer,
-            { paddingBottom: insets.bottom || 20 },
           ]}
         >
           <View
@@ -323,6 +352,7 @@ export default function HomeScreen() {
               {
                 backgroundColor: colors.cardBg,
                 shadowColor: isDark ? "#000" : "#333",
+                paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 24,
               },
             ]}
           >
@@ -404,6 +434,27 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  waterDropMarker: {
+    width: 36,
+    height: 36,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    transform: [{ rotate: "45deg" }],
+    borderWidth: 2,
+    borderColor: "#FFF",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  waterDropIcon: {
+    transform: [{ rotate: "-45deg" }],
+  },
   markerBadge: {
     padding: 6,
     borderRadius: 20,
@@ -473,16 +524,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
     zIndex: 10,
   },
   storeCard: {
-    borderRadius: 20,
-    padding: 20,
-    elevation: 8,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    padding: 24,
+    elevation: 16,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   cardHeader: {
     flexDirection: "row",

@@ -45,15 +45,18 @@ export default function VendorOnboardingLocation() {
               latitudeDelta: 0.0922,
               longitudeDelta: 0.0421,
             }}
+            showsPointsOfInterest={false}
             onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
           >
             <Marker 
               coordinate={selectedLocation}
-              title="Store Location"
-              description="Your store will be pinned here."
               draggable
               onDragEnd={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
-            />
+            >
+              <View style={styles.waterDropMarker}>
+                <View style={styles.waterDropIcon} />
+              </View>
+            </Marker>
           </MapView>
           <Text style={{color: '#666', fontSize: 12, marginTop: 8, textAlign: 'center'}}>
             Drag the pin or tap on the map to set your location
@@ -126,6 +129,32 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 12,
+  },
+  waterDropMarker: {
+    width: 36,
+    height: 36,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '45deg' }],
+    borderWidth: 2,
+    borderColor: '#FFF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    backgroundColor: '#0F6E56',
+  },
+  waterDropIcon: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFF',
+    transform: [{ rotate: '-45deg' }],
   },
   button: {
     backgroundColor: '#0F6E56',
