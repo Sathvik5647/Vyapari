@@ -40,7 +40,9 @@ export default function VendorOnboardingProducts() {
           name: data.name,
           category: data.category,
           phone: data.phone,
-          location_text: data.location || "Default Location"
+          location_text: data.location || '',
+          latitude: data.latitude,
+          longitude: data.longitude,
         })
         .select('id')
         .single();

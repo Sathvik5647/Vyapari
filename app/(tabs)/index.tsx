@@ -33,6 +33,13 @@ const CATEGORIES = [
   { id: "5", name: "Electronics", icon: "hardware-chip-outline", color: "#FF9800" },
 ];
 
+// Suppress all Google Maps POI/transit markers — only show our store pins
+const CLEAN_MAP_STYLE = [
+  { featureType: "poi", elementType: "all", stylers: [{ visibility: "off" }] },
+  { featureType: "poi.business", elementType: "all", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", elementType: "all", stylers: [{ visibility: "off" }] },
+];
+
 const getCategoryDetails = (categoryName: string) => {
   const cat = CATEGORIES.find(c => c.name.toLowerCase() === (categoryName || "").toLowerCase());
   return {
@@ -43,6 +50,7 @@ const getCategoryDetails = (categoryName: string) => {
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [stores, setStores] = useState<any[]>([]);
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -59,12 +67,30 @@ export default function HomeScreen() {
 
   const isDark = colorScheme === "dark";
 
-  // Hide tab bar when a store is selected
+  // Hide tab bar when a store is selected — restore full original style on dismiss
   useEffect(() => {
     navigation.getParent()?.setOptions({
-      tabBarStyle: selectedStore ? { display: "none" } : undefined,
+      tabBarStyle: selectedStore
+        ? { display: "none" }
+        : {
+            position: "absolute" as const,
+            bottom: Platform.OS === "ios" ? 34 : 20,
+            left: 20,
+            right: 20,
+            height: 64,
+            borderRadius: 36,
+            backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
+            borderTopWidth: 0,
+            elevation: 24,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.15,
+            shadowRadius: 20,
+            paddingBottom: 0,
+            paddingTop: 0,
+          },
     });
-  }, [navigation, selectedStore]);
+  }, [navigation, selectedStore, isDark]);
 
   useEffect(() => {
     setupLocationAndData();
@@ -199,24 +225,40 @@ export default function HomeScreen() {
     iconDefault: isDark ? "#E0E0E0" : "#333333",
   };
 
+  // Filter map markers by selected category (null = show all)
+  const filteredStores = selectedCategory
+    ? stores.filter(
+        (s) => s.category?.toLowerCase() === selectedCategory.toLowerCase()
+      )
+    : stores;
+
+  // Guard: skip stores that have null coordinates (e.g. newly created, not geocoded yet)
+  const safeStores = filteredStores.filter(
+    (s) => s.latitude != null && s.longitude != null
+  );
+
   return (
     <View style={styles.container}>
       <MapView
         ref={mapRef}
         style={styles.map}
         initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitude: 22.3072,
+          longitude: 73.1812,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
         }}
         showsPointsOfInterest={false}
+        showsBuildings={false}
+        showsTraffic={false}
         showsUserLocation
+        toolbarEnabled={false}
+        customMapStyle={CLEAN_MAP_STYLE}
         showsMyLocationButton={false}
         userInterfaceStyle={isDark ? "dark" : "light"}
         onPress={() => setSelectedStore(null)}
       >
-        {stores.map((store) => {
+        {safeStores.map((store) => {
           const { icon, color } = getCategoryDetails(store.category);
           return (
             <Marker
@@ -230,8 +272,11 @@ export default function HomeScreen() {
                 handleMarkerPress(store);
               }}
             >
-              <View style={[styles.waterDropMarker, { backgroundColor: color }]}>
-                <Ionicons name={icon as any} size={16} color="#FFF" style={styles.waterDropIcon} />
+              <View style={styles.pinWrapper}>
+                <View style={[styles.pinHead, { backgroundColor: color }]}>
+                  <Ionicons name={icon as any} size={15} color="#FFF" />
+                </View>
+                <View style={[styles.pinTail, { borderTopColor: color }]} />
               </View>
             </Marker>
           );
@@ -272,21 +317,21 @@ export default function HomeScreen() {
         <View
           style={[
             styles.searchContainer,
-            { backgroundColor: colors.searchBg, borderColor: colors.border },
+            { backgroundColor: "rgba(255,255,255,0.97)", borderColor: "rgba(0,0,0,0.06)" },
           ]}
         >
           <Ionicons
             name="search"
-            size={20}
-            color={colors.textDim}
+            size={18}
+            color="#999"
             style={styles.searchIcon}
           />
           <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
+            style={[styles.searchInput, { color: "#111" }]}
             placeholder="Search stores, items..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={colors.textDim}
+            placeholderTextColor="#AAAAAA"
           />
         </View>
 
@@ -295,20 +340,40 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsScroll}
         >
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.chip,
-                { backgroundColor: colors.cardBg, borderColor: colors.border },
-              ]}
-            >
-              <Ionicons name={cat.icon as any} size={16} color={colors.text} />
-              <Text style={[styles.chipText, { color: colors.text }]}>
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const isActive = selectedCategory === cat.name;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() =>
+                  setSelectedCategory(isActive ? null : cat.name)
+                }
+                style={[
+                  styles.chip,
+                  isActive
+                    ? { backgroundColor: cat.color, borderColor: cat.color }
+                    : {
+                        backgroundColor: "rgba(255,255,255,0.96)",
+                        borderColor: "rgba(0,0,0,0.08)",
+                      },
+                ]}
+              >
+                <Ionicons
+                  name={cat.icon as any}
+                  size={14}
+                  color={isActive ? "#FFF" : "#333"}
+                />
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: isActive ? "#FFF" : "#333" },
+                  ]}
+                >
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -319,7 +384,7 @@ export default function HomeScreen() {
           {
             backgroundColor: colors.cardBg,
             shadowColor: isDark ? "#000" : "#333",
-            bottom: selectedStore ? 180 : insets.bottom + 20,
+            bottom: selectedStore ? 260 : 100,
           },
         ]}
         onPress={() => {
@@ -434,26 +499,38 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  waterDropMarker: {
-    width: 36,
-    height: 36,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 0,
+  // Classic pin marker: circle head + triangle tail
+  pinWrapper: {
+    alignItems: "center",
+  },
+  pinHead: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    transform: [{ rotate: "45deg" }],
-    borderWidth: 2,
-    borderColor: "#FFF",
-    elevation: 4,
+    borderWidth: 2.5,
+    borderColor: "#FFFFFF",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.30,
+    shadowRadius: 5,
+  },
+  pinTail: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderTopWidth: 9,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    marginTop: -1,
+    elevation: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  waterDropIcon: {
-    transform: [{ rotate: "-45deg" }],
+    shadowOpacity: 0.20,
+    shadowRadius: 2,
   },
   markerBadge: {
     padding: 6,
@@ -504,20 +581,21 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    gap: 6,
-    elevation: 2,
+    gap: 5,
+    elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.10,
+    shadowRadius: 3,
   },
   chipText: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.1,
   },
   bottomCardContainer: {
     position: "absolute",

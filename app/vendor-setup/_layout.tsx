@@ -6,6 +6,8 @@ type VendorData = {
   name: string;
   category: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   products: { id: number; name: string; price: string }[];
 };
 
@@ -28,6 +30,8 @@ export default function VendorSetupLayout() {
     name: '',
     category: '',
     location: '',
+    latitude: null,
+    longitude: null,
     products: [],
   });
 

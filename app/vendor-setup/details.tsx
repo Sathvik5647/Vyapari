@@ -6,11 +6,12 @@ import { useVendorContext } from './_layout';
 export default function VendorOnboardingDetails() {
   const [storeName, setStoreName] = useState('');
   const [category, setCategory] = useState('');
+  const [areaText, setAreaText] = useState('');
   const router = useRouter();
   const { updateData } = useVendorContext();
 
   const handleNext = () => {
-    updateData({ name: storeName, category });
+    updateData({ name: storeName, category, location: areaText });
     router.push('/vendor-setup/location');
   };
 
@@ -41,6 +42,16 @@ export default function VendorOnboardingDetails() {
         </View>
 
         <View style={styles.inputContainer}>
+          <Text style={styles.label}>Area / Neighbourhood</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Alkapuri, Vadodara"
+            value={areaText}
+            onChangeText={setAreaText}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
           <Text style={styles.label}>Category</Text>
           <View style={styles.chipsRow}>
             {['Grocery', 'Pharmacy', 'Clothing', 'Electronics'].map(cat => (
@@ -56,9 +67,9 @@ export default function VendorOnboardingDetails() {
         </View>
 
         <TouchableOpacity 
-          style={[styles.button, !storeName || !category ? styles.buttonDisabled : null]} 
+          style={[styles.button, (!storeName || !category || !areaText) ? styles.buttonDisabled : null]} 
           onPress={handleNext}
-          disabled={!storeName || !category}
+          disabled={!storeName || !category || !areaText}
         >
           <Text style={styles.buttonText}>Continue to Location</Text>
         </TouchableOpacity>
