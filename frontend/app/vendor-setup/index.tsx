@@ -1,189 +1,241 @@
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
+import {
+  StyleSheet, View, Text, TextInput, TouchableOpacity,
+  SafeAreaView, Platform, StatusBar, ActivityIndicator,
+  useColorScheme, KeyboardAvoidingView, ScrollView, Alert,
+} from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { useVendorContext } from './_layout';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../utils/supabase';
+import { useVendorContext } from './_layout';
 
-export default function VendorOnboardingOTP() {
-  const [phone, setPhone] = useState('');
+const PRIMARY = '#0F6E56';
+type Tab = 'login' | 'signup';
+
+export default function VendorAuth() {
+  const [tab, setTab] = useState<Tab>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const router = useRouter();
   const { updateData } = useVendorContext();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
-  const handleNext = async () => {
-      setLoading(true);
-      try {
-        // SIMULATED AUTH: We sign up a fake email to give this vendor a real UUID in Supabase.
-        const fakeEmail = `${phone}@teststore.com`;
-        
-        // 1. Try to sign in first
-        let { data, error } = await supabase.auth.signInWithPassword({
-            email: fakeEmail,
-            password: 'testpassword123',
-        });
-
-        // Handle specific "Email not confirmed" error which happens if they tried signing up 
-        // *before* disabling the "Confirm email" setting in Supabase.
-        if (error && error.message.includes('Email not confirmed')) {
-            alert("Error: This test number's account is stuck in an unconfirmed state.\n\n1. Go to Supabase Dashboard -> Authentication -> Providers -> Email and ensure 'Confirm Email' is OFF.\n2. Go to Authentication -> Users, and delete the user ending in @teststore.com.\n3. Try again!");
-            setLoading(false);
-            return;
-        }
-
-        // 2. If user doesn't exist, sign them up
-        if (error && error.message.includes('Invalid login credentials')) {
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                email: fakeEmail,
-                password: 'testpassword123',
-            });
-            
-            // If Supabase requires email confirmation (which is on by default and skips auto-login)
-            if (!signUpError && !signUpData?.session) {
-                alert("Please go to Supabase Dashboard -> Authentication -> Providers -> Email and turn OFF 'Confirm email', then try again!");
-                setLoading(false);
-                return;
-            }
-            if (signUpError) throw signUpError;
-        } else if (error) {
-            throw error;
-        }
-        
-        updateData({ phone });
-        router.push('/vendor-setup/details');
-      } catch (err: any) {
-        console.error(err);
-        alert(err.message || 'An error occurred during simulated login');
-      } finally {
-        setLoading(false);
-      }
+  const colors = {
+    bg:      isDark ? '#111'    : '#F8F9FA',
+    card:    isDark ? '#1C1C1E' : '#FFFFFF',
+    text:    isDark ? '#FFF'    : '#111',
+    textDim: isDark ? '#888'    : '#666',
+    border:  isDark ? '#333'    : '#E0E0E0',
+    input:   isDark ? '#2A2A2A' : '#F5F5F5',
   };
 
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert('Missing fields', 'Please enter your email and password.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) throw error;
+
+      // Check if vendor already has a store
+      const { data: storeData } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('vendor_id', data.user.id)
+        .maybeSingle();
+
+      if (storeData) {
+        router.replace('/(tabs)/vendor');
+      } else {
+        router.push('/vendor-setup/details');
+      }
+    } catch (e: any) {
+      Alert.alert('Login failed', e.message || 'Invalid email or password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert('Missing fields', 'Please enter your email and a password.');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Weak password', 'Password must be at least 6 characters.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) throw error;
+
+      if (!data.session) {
+        Alert.alert(
+          'Check your email 📧',
+          'We sent you a confirmation link. After verifying, come back and log in.',
+          [{ text: 'OK', onPress: () => setTab('login') }]
+        );
+        return;
+      }
+      // Signed up + logged in — go to onboarding
+      router.push('/vendor-setup/details');
+    } catch (e: any) {
+      Alert.alert('Sign up failed', e.message || 'Could not create account.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submit = () => (tab === 'login' ? handleLogin() : handleSignUp());
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressDot, styles.progressActive]} />
-          <View style={styles.progressLine} />
-          <View style={styles.progressDot} />
-          <View style={styles.progressLine} />
-          <View style={styles.progressDot} />
-          <View style={styles.progressLine} />
-          <View style={styles.progressDot} />
-        </View>
-
-        <Text style={styles.title}>
-          Enter your phone number
-        </Text>
-        <Text style={styles.subtitle}>
-          (OTP is skipped for testing)
-        </Text>
-
-        <View style={styles.inputContainer}>
-            <>
-              <Text style={styles.prefix}>+91</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="10-digit mobile number"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                maxLength={10}
-              />
-            </>
-        </View>
-
-        <TouchableOpacity 
-          style={[styles.button, !phone ? styles.buttonDisabled : null]} 
-          onPress={handleNext}
-          disabled={!phone || loading}
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Verify & Continue'}</Text>
-        </TouchableOpacity>
-      </View>
+          {/* Brand */}
+          <View style={styles.brandRow}>
+            <View style={styles.logoCircle}>
+              <Ionicons name="storefront" size={32} color="#FFF" />
+            </View>
+            <Text style={[styles.brandName, { color: colors.text }]}>Vendor Portal</Text>
+            <Text style={[styles.brandSub, { color: colors.textDim }]}>
+              Manage your store, products & bills
+            </Text>
+          </View>
+
+          {/* Tab Switcher */}
+          <View style={[styles.tabBar, { backgroundColor: colors.input, borderColor: colors.border }]}>
+            {(['login', 'signup'] as Tab[]).map(t => (
+              <TouchableOpacity
+                key={t}
+                style={[styles.tabBtn, tab === t && { backgroundColor: colors.card }]}
+                onPress={() => setTab(t)}
+              >
+                <Text style={[
+                  styles.tabBtnText,
+                  { color: tab === t ? PRIMARY : colors.textDim, fontWeight: tab === t ? '700' : '500' }
+                ]}>
+                  {t === 'login' ? 'Log In' : 'Sign Up'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Card */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+
+            {/* Email */}
+            <Text style={[styles.label, { color: colors.textDim }]}>Email Address</Text>
+            <View style={[styles.inputRow, { backgroundColor: colors.input, borderColor: colors.border }]}>
+              <Ionicons name="mail-outline" size={18} color={colors.textDim} style={{ marginLeft: 14 }} />
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder="you@example.com"
+                placeholderTextColor="#AAA"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+
+            {/* Password */}
+            <Text style={[styles.label, { color: colors.textDim }]}>Password</Text>
+            <View style={[styles.inputRow, { backgroundColor: colors.input, borderColor: colors.border }]}>
+              <Ionicons name="lock-closed-outline" size={18} color={colors.textDim} style={{ marginLeft: 14 }} />
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder={tab === 'signup' ? 'Choose a password (min. 6 chars)' : 'Your password'}
+                placeholderTextColor="#AAA"
+                secureTextEntry={!showPw}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPw(v => !v)} style={{ paddingHorizontal: 14 }}>
+                <Ionicons name={showPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textDim} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Submit */}
+            <TouchableOpacity
+              style={[styles.submitBtn, { opacity: loading ? 0.7 : 1 }]}
+              onPress={submit}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#FFF" />
+                : <Text style={styles.submitBtnText}>
+                    {tab === 'login' ? 'Log In →' : 'Create Account →'}
+                  </Text>
+              }
+            </TouchableOpacity>
+
+            {/* Switch tab */}
+            <TouchableOpacity
+              style={{ marginTop: 16, alignItems: 'center' }}
+              onPress={() => { setTab(tab === 'login' ? 'signup' : 'login'); setPassword(''); }}
+            >
+              <Text style={{ color: colors.textDim, fontSize: 13 }}>
+                {tab === 'login' ? "Don't have an account? " : 'Already have an account? '}
+                <Text style={{ color: PRIMARY, fontWeight: '700' }}>
+                  {tab === 'login' ? 'Sign Up' : 'Log In'}
+                </Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  safe: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+  scroll: { padding: 24, paddingBottom: 48 },
+
+  brandRow: { alignItems: 'center', marginBottom: 32, marginTop: 24 },
+  logoCircle: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14,
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 12, elevation: 8,
   },
-  container: {
-    padding: 24,
-    flex: 1,
-    justifyContent: 'center',
+  brandName: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 6 },
+  brandSub: { fontSize: 14, textAlign: 'center' },
+
+  tabBar: { flexDirection: 'row', borderRadius: 14, borderWidth: 1, padding: 4, marginBottom: 20 },
+  tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' },
+  tabBtnText: { fontSize: 15 },
+
+  card: { borderRadius: 20, borderWidth: 1, padding: 24 },
+  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: 12, borderWidth: 1, height: 52, marginBottom: 18,
   },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 48,
+  input: { flex: 1, height: '100%', paddingHorizontal: 12, fontSize: 15 },
+  submitBtn: {
+    backgroundColor: PRIMARY, height: 52, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
-  progressDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#f0f0f0',
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-  },
-  progressActive: {
-    backgroundColor: '#E1F5EE',
-    borderColor: '#0F6E56',
-  },
-  progressLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: '#e0e0e0',
-    marginHorizontal: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 32,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginBottom: 24,
-    height: 56,
-  },
-  prefix: {
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#333',
-    borderRightWidth: 1,
-    borderRightColor: '#ccc',
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 12,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#0F6E56',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#a0c4bb',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  submitBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
 });

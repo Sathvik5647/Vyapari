@@ -7,11 +7,12 @@ export default function VendorOnboardingDetails() {
   const [storeName, setStoreName] = useState('');
   const [category, setCategory] = useState('');
   const [areaText, setAreaText] = useState('');
+  const [storePhone, setStorePhone] = useState('');
   const router = useRouter();
   const { updateData } = useVendorContext();
 
   const handleNext = () => {
-    updateData({ name: storeName, category, location: areaText });
+    updateData({ name: storeName, category, location: areaText, phone: storePhone });
     router.push('/vendor-setup/location');
   };
 
@@ -64,6 +65,18 @@ export default function VendorOnboardingDetails() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Store Phone Number (shown to buyers)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 9876543210"
+            keyboardType="phone-pad"
+            maxLength={10}
+            value={storePhone}
+            onChangeText={setStorePhone}
+          />
         </View>
 
         <TouchableOpacity 

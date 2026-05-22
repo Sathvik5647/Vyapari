@@ -38,6 +38,24 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Local Store App to access your camera to scan barcodes and products."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Local Store App to access your microphone to add products by voice."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Local Store App to access your photos."
+        }
       ]
     ],
     "experiments": {

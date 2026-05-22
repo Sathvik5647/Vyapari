@@ -20,8 +20,12 @@ type BillItem = {
   qty: number;
 };
 
-function parsePrice(priceStr: string): number {
-  const num = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+// price from Supabase is now a number (after the numeric fix), but may still be
+// a string like "₹55" in old rows. Handle both gracefully.
+function parsePrice(price: number | string | null | undefined): number {
+  if (price == null) return 0;
+  if (typeof price === 'number') return price;
+  const num = parseFloat(String(price).replace(/[^0-9.]/g, ''));
   return isNaN(num) ? 0 : num;
 }
 
@@ -69,6 +73,7 @@ export default function VendorBillScreen() {
   const addOrIncrease = (product: any) => {
     const existing = billItems.find(i => i.productId === product.id);
     const price = parsePrice(product.price);
+    const priceDisplay = `₹${price.toFixed(0)}`;
     if (existing) {
       setBillItems(prev => prev.map(i =>
         i.productId === product.id ? { ...i, qty: i.qty + 1 } : i
@@ -78,7 +83,7 @@ export default function VendorBillScreen() {
         productId: product.id,
         name: product.name,
         price,
-        priceStr: product.price,
+        priceStr: priceDisplay,
         qty: 1,
       }]);
     }
@@ -330,7 +335,7 @@ export default function VendorBillScreen() {
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.prodName, { color: colors.text }]} numberOfLines={1}>{product.name}</Text>
-                      <Text style={[styles.prodPrice, { color: PRIMARY }]}>{product.price}</Text>
+                      <Text style={[styles.prodPrice, { color: PRIMARY }]}>₹{parsePrice(product.price).toFixed(0)}</Text>
                     </View>
                     <View style={styles.qtyControl}>
                       <TouchableOpacity

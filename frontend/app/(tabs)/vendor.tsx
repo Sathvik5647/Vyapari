@@ -1,12 +1,15 @@
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
   SafeAreaView, Platform, StatusBar, ActivityIndicator,
-  Modal, TextInput, Alert, KeyboardAvoidingView, useColorScheme,
+  Modal, TextInput, Alert, KeyboardAvoidingView, useColorScheme, Image
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../utils/supabase';
+import { Audio } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
+import { ML_API } from '../../utils/api';
 
 const PRIMARY = '#0F6E56';
 
@@ -24,6 +27,11 @@ export default function VendorScreen() {
   const [newPrice, setNewPrice] = useState('');
   const [newUnit, setNewUnit] = useState('');
   const [addingProduct, setAddingProduct] = useState(false);
+
+  // ── ML States ──────────────────────────────────────────────
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isProcessingML, setIsProcessingML] = useState(false);
+  const [mlStatusText, setMlStatusText] = useState('');
 
   // ── Edit Product State ─────────────────────────────────────
   const [editProduct, setEditProduct] = useState<any>(null);
@@ -64,6 +72,140 @@ export default function VendorScreen() {
     }
   };
 
+  // ── ML Handlers ────────────────────────────────────────────
+
+  /** Tap once to START, tap again to STOP and process. */
+  const handleVoiceToggle = async () => {
+    if (recording) {
+      // ── STOP ──
+      await stopRecordingAndProcess();
+    } else {
+      // ── START ──
+      await beginRecording();
+    }
+  };
+
+  const beginRecording = async () => {
+    // 1. Quick connectivity check first so we fail fast
+    setIsProcessingML(true);
+    setMlStatusText('Checking ML server...');
+    const alive = await ML_API.ping();
+    setIsProcessingML(false);
+    setMlStatusText('');
+    if (!alive) {
+      Alert.alert(
+        'ML Server Unreachable 🚫',
+        `Cannot connect to ${process.env.EXPO_PUBLIC_FASTAPI_URL || 'FastAPI'}.
+
+1. Start FastAPI:  uvicorn main:app --host 0.0.0.0 --port 8000
+2. Make sure your phone and PC are on the same WiFi.
+3. Confirm EXPO_PUBLIC_FASTAPI_URL is your PC’s local IP (e.g. http://192.168.x.x:8000).`
+      );
+      return;
+    }
+
+    // 2. Mic permission
+    const perm = await Audio.requestPermissionsAsync();
+    if (perm.status !== 'granted') {
+      Alert.alert('Permission Denied', 'Microphone access is needed for voice input.');
+      return;
+    }
+
+    // 3. Clean up any stale recording
+    if (recording) {
+      try { await recording.stopAndUnloadAsync(); } catch (_) {}
+      setRecording(null);
+    }
+
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording: rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(rec);
+    } catch (err: any) {
+      Alert.alert('Mic Error', err.message || 'Could not start microphone.');
+    }
+  };
+
+  const stopRecordingAndProcess = async () => {
+    if (!recording) return;
+    const rec = recording;
+    setRecording(null);
+    try {
+      await rec.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      const uri = rec.getURI();
+      if (!uri) { Alert.alert('Error', 'No audio recorded.'); return; }
+
+      setIsProcessingML(true);
+      setMlStatusText('Transcribing audio...');
+      const transcript = await ML_API.transcribeAudio(uri, 'en');
+      console.log('Transcript:', transcript.text);
+      if (!transcript.text.trim()) {
+        Alert.alert('Nothing heard', 'Could not detect speech. Please try again.');
+        return;
+      }
+
+      setMlStatusText('Extracting product info...');
+      const parsed = await ML_API.parseProduct(transcript.text);
+      console.log('Parsed:', parsed);
+
+      if (parsed.name) setNewName(parsed.name);
+      if (parsed.price) setNewPrice(String(parsed.price));
+      if (parsed.unit) setNewUnit(parsed.unit);
+    } catch (error: any) {
+      Alert.alert('Voice Error', error.message || 'Something went wrong.');
+    } finally {
+      setIsProcessingML(false);
+      setMlStatusText('');
+    }
+  };
+
+  const handleTakeAPhoto = async () => {
+    // Quick connectivity check
+    const alive = await ML_API.ping();
+    if (!alive) {
+      Alert.alert(
+        'ML Server Unreachable 🚫',
+        'Start FastAPI with:\n  uvicorn main:app --host 0.0.0.0 --port 8000'
+      );
+      return;
+    }
+
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera access is needed to take product photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images' as any, // avoids deprecated MediaTypeOptions warning
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0].base64) {
+        setIsProcessingML(true);
+        setMlStatusText('Identifying product...');
+        const visionData = await ML_API.identifyProductBase64(result.assets[0].base64);
+        console.log('Vision Data:', visionData);
+        if (visionData.name) setNewName(visionData.name);
+      }
+    } catch (error: any) {
+      Alert.alert('Camera Error', error.message || 'Could not process image.');
+    } finally {
+      setIsProcessingML(false);
+      setMlStatusText('');
+    }
+  };
+
+
+  // ── Standard Handlers ──────────────────────────────────────
+
   const handleAddProduct = async () => {
     if (!newName.trim()) {
       Alert.alert('Missing info', 'Please enter a product name.');
@@ -71,9 +213,8 @@ export default function VendorScreen() {
     }
     try {
       setAddingProduct(true);
-      const priceStr = newPrice.trim()
-        ? (newPrice.trim().startsWith('₹') ? newPrice.trim() : `₹${newPrice.trim()}`)
-        : '₹0';
+      // Price stored as plain numeric in Supabase, ₹ is only for display
+      const priceNum = newPrice.trim() ? parseFloat(newPrice.trim().replace(/[^0-9.]/g, '')) : 0;
       const displayName = newUnit.trim() ? `${newName.trim()} (${newUnit.trim()})` : newName.trim();
 
       const { data, error } = await supabase
@@ -81,7 +222,7 @@ export default function VendorScreen() {
         .insert({
           store_id: store.id,
           name: displayName,
-          price: priceStr,
+          price: priceNum,
           is_in_stock: true,
         })
         .select()
@@ -101,16 +242,14 @@ export default function VendorScreen() {
   const handleEditProduct = async () => {
     if (!editName.trim()) return;
     try {
-      const priceStr = editPrice.trim()
-        ? (editPrice.trim().startsWith('₹') ? editPrice.trim() : `₹${editPrice.trim()}`)
-        : editProduct.price;
+      const priceNum = editPrice.trim() ? parseFloat(editPrice.trim().replace(/[^0-9.]/g, '')) : 0;
       const { error } = await supabase
         .from('products')
-        .update({ name: editName.trim(), price: priceStr })
+        .update({ name: editName.trim(), price: priceNum })
         .eq('id', editProduct.id);
       if (error) throw error;
       setProducts(prev => prev.map(p =>
-        p.id === editProduct.id ? { ...p, name: editName.trim(), price: priceStr } : p
+        p.id === editProduct.id ? { ...p, name: editName.trim(), price: priceNum } : p
       ));
       setEditProduct(null);
     } catch (e: any) {
@@ -251,7 +390,9 @@ export default function VendorScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.productName, { color: colors.text }]}>{product.name}</Text>
-                  <Text style={[styles.productPrice, { color: PRIMARY }]}>{product.price}</Text>
+                  <Text style={[styles.productPrice, { color: PRIMARY }]}>
+                    {product.price != null ? `₹${product.price}` : '—'}
+                  </Text>
                 </View>
 
                 {/* Stock toggle */}
@@ -271,7 +412,7 @@ export default function VendorScreen() {
                 {/* Edit */}
                 <TouchableOpacity
                   style={styles.iconAction}
-                  onPress={() => { setEditProduct(product); setEditName(product.name); setEditPrice(product.price?.replace('₹', '') || ''); }}
+                  onPress={() => { setEditProduct(product); setEditName(product.name); setEditPrice(product.price != null ? String(product.price) : ''); }}
                 >
                   <Ionicons name="pencil-outline" size={16} color={colors.textDim} />
                 </TouchableOpacity>
@@ -292,7 +433,40 @@ export default function VendorScreen() {
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAddModal(false)} />
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
             <View style={styles.modalHandle} />
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Add Product</Text>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Add Product</Text>
+            </View>
+
+            {/* AI Action Buttons */}
+            <View style={styles.aiToolsContainer}>
+              <TouchableOpacity
+                style={[styles.aiBtn, recording ? styles.aiBtnActive : { backgroundColor: colors.input, borderColor: colors.border }]}
+                onPress={handleVoiceToggle}
+                disabled={isProcessingML}
+              >
+                <Ionicons name={recording ? "mic" : "mic-outline"} size={22} color={recording ? "#FFF" : PRIMARY} />
+                <Text style={[styles.aiBtnText, { color: recording ? "#FFF" : PRIMARY }]}>
+                  {recording ? "Tap to Stop ⏹" : "Tap to Record 🎙"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.aiBtn, { backgroundColor: colors.input, borderColor: colors.border }]}
+                onPress={handleTakeAPhoto}
+                disabled={isProcessingML || !!recording}
+              >
+                <Ionicons name="camera-outline" size={22} color={PRIMARY} />
+                <Text style={[styles.aiBtnText, { color: PRIMARY }]}>Scan Photo</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isProcessingML && (
+              <View style={styles.mlLoading}>
+                <ActivityIndicator size="small" color={PRIMARY} />
+                <Text style={{ color: PRIMARY, fontSize: 13, fontWeight: '600' }}>{mlStatusText}</Text>
+              </View>
+            )}
 
             <Text style={[styles.inputLabel, { color: colors.textDim }]}>Product Name *</Text>
             <TextInput
@@ -301,7 +475,6 @@ export default function VendorScreen() {
               placeholderTextColor="#AAA"
               value={newName}
               onChangeText={setNewName}
-              autoFocus
             />
 
             <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -336,9 +509,9 @@ export default function VendorScreen() {
                 <Text style={[styles.modalBtnSecondaryText, { color: colors.textDim }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: PRIMARY, opacity: addingProduct ? 0.7 : 1 }]}
+                style={[styles.modalBtnPrimary, { backgroundColor: PRIMARY, opacity: addingProduct || isProcessingML ? 0.7 : 1 }]}
                 onPress={handleAddProduct}
-                disabled={addingProduct}
+                disabled={addingProduct || isProcessingML}
               >
                 {addingProduct
                   ? <ActivityIndicator color="#FFF" size="small" />
@@ -444,7 +617,15 @@ const styles = StyleSheet.create({
   modalBackdrop: { flex: 1 },
   modalSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
   modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#DDD', alignSelf: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 0 },
+  
+  // AI Tools
+  aiToolsContainer: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  aiBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1, gap: 6 },
+  aiBtnActive: { backgroundColor: '#E74C3C', borderColor: '#E74C3C' },
+  aiBtnText: { fontSize: 14, fontWeight: '700' },
+  mlLoading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, backgroundColor: '#0F6E5615', borderRadius: 12, marginBottom: 16 },
+
   inputLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3, marginBottom: 6, textTransform: 'uppercase' },
   textInput: {
     borderRadius: 12, borderWidth: 1, height: 48,

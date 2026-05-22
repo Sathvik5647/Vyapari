@@ -58,13 +58,17 @@ export default function VendorOnboardingProducts() {
       if (validProducts.length > 0) {
         const productsToInsert = validProducts.map(p => ({
           store_id: storeData.id,
-          name: p.name,
-          price: p.price ? `₹${p.price}` : '₹0',
-          is_in_stock: true
+          name: p.name.trim(),
+          // Store as plain number — Supabase price column is numeric
+          price: p.price ? parseFloat(p.price) : 0,
+          is_in_stock: true,
         }));
 
         const { error: prodError } = await supabase.from('products').insert(productsToInsert);
-        if (prodError) console.log("Product save error", prodError);
+        if (prodError) {
+          console.error('Product save error:', prodError);
+          alert(`Product save failed: ${prodError.message}`);
+        }
       }
 
       // 3. Return to Dashboard
