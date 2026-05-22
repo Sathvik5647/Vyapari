@@ -1,0 +1,19 @@
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# ML / AI models
+faster-whisper>=1.0.0        # Whisper STT (CTranslate2 backend — 4x faster than openai-whisper on CPU)
+transformers>=4.40.0         # HuggingFace: CLIP, BLIP-2
+torch>=2.2.0                 # PyTorch (CPU build — no CUDA needed for MVP)
+Pillow>=10.0.0               # Image processing
+
+# NLP
+spacy>=3.7.0                 # Product entity extraction
+
+# Audio
+ffmpeg-python>=0.2.0         # Python wrapper for ffmpeg (audio format conversion)
+
+# Utilities
+python-multipart>=0.0.9      # FastAPI file upload support
+python-dotenv>=1.0.0         # .env file loading
+httpx>=0.27.0                # Async HTTP client (for Supabase calls if needed)

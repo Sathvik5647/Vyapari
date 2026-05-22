@@ -1,0 +1,300 @@
+
+<style>
+  h2.sr-only { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0); }
+  .section { margin: 0 0 2rem; }
+  .section-title { font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-secondary);margin:0 0 12px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary); }
+  .card { background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:10px; }
+  .card-title { font-size:14px;font-weight:500;color:var(--color-text-primary);margin:0 0 4px; }
+  .card-sub { font-size:13px;color:var(--color-text-secondary);line-height:1.55;margin:0; }
+  .badge { display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;margin-right:6px;margin-bottom:4px; }
+  .b-teal { background:#E1F5EE;color:#0F6E56; }
+  .b-amber { background:#FAEEDA;color:#854F0B; }
+  .b-coral { background:#FAECE7;color:#993C1D; }
+  .b-purple { background:#EEEDFE;color:#3C3489; }
+  .b-blue { background:#E6F1FB;color:#185FA5; }
+  .grid2 { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px; }
+  .grid3 { display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px; }
+  .flow-row { display:flex;gap:0;margin:0 0 10px;flex-wrap:wrap; }
+  .flow-step { flex:1;min-width:120px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);padding:12px;text-align:center;position:relative; }
+  .flow-step:not(:last-child)::after { content:"→";position:absolute;right:-10px;top:50%;transform:translateY(-50%);color:var(--color-text-secondary);font-size:14px;z-index:2; }
+  .flow-step .fs-num { font-size:11px;color:var(--color-text-secondary);display:block;margin-bottom:2px; }
+  .flow-step .fs-label { font-size:13px;font-weight:500;color:var(--color-text-primary); }
+  .screen { background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:0;overflow:hidden; }
+  .screen-bar { background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:10px 14px;font-size:12px;font-weight:500;color:var(--color-text-secondary); }
+  .screen-body { padding:12px 14px; }
+  .mock-search { background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--color-text-secondary);margin-bottom:10px; }
+  .mock-chip { display:inline-block;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--color-text-secondary);margin:2px; }
+  .mock-store-card { background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center; }
+  .mock-avatar { width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
+  .mock-item-row { display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px; }
+  .mock-item-row:last-child { border:none; }
+  .phase { display:flex;gap:12px;margin-bottom:10px;align-items:flex-start; }
+  .phase-dot { width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:2px; }
+  .moat-item { padding:10px 14px;border-left:2px solid;margin-bottom:8px;background:var(--color-background-secondary);border-radius:0 8px 8px 0; }
+</style>
+
+<h2 class="sr-only">Local vendor discovery app — full product plan including features, user flows, screen mockups, and roadmap</h2>
+
+<div style="padding:1rem 0 0">
+
+  <div class="section">
+    <div class="section-title">Core concept</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">For customers</div>
+        <div class="card-sub">Search for an item → see which nearby stores carry it → get directions or call directly. No more wandering around asking.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">For vendors</div>
+        <div class="card-sub">List your store and products in under 5 minutes. No tech knowledge needed. WhatsApp-style simplicity.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Feature set — customer app</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">🔍 Item-first search</div>
+        <div class="card-sub">Search "Amul butter 500g" or "Allen Solly white shirt XL" and get a map of stores that carry it nearby.</div>
+        <div style="margin-top:8px"><span class="badge b-teal">Core</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📍 Explore by map</div>
+        <div class="card-sub">Browse stores around you on a live map. Filter by category: grocery, electronics, clothing, pharmacy, etc.</div>
+        <div style="margin-top:8px"><span class="badge b-teal">Core</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏪 Store profiles</div>
+        <div class="card-sub">Full store page: name, location, open hours, photos, product catalog with prices, WhatsApp/call button.</div>
+        <div style="margin-top:8px"><span class="badge b-teal">Core</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">💬 Ask the store</div>
+        <div class="card-sub">One-tap WhatsApp integration. Customer asks "do you have X in size Y?" without leaving the app.</div>
+        <div style="margin-top:8px"><span class="badge b-amber">Phase 2</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔔 Stock alerts</div>
+        <div class="card-sub">Notify me when a specific item is back in stock at a nearby store.</div>
+        <div style="margin-top:8px"><span class="badge b-amber">Phase 2</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🌐 Multilingual</div>
+        <div class="card-sub">Hindi, Marathi, Tamil, Bengali support. Voice search in local language.</div>
+        <div style="margin-top:8px"><span class="badge b-amber">Phase 2</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⭐ Reviews + photos</div>
+        <div class="card-sub">Leave a review. Upload a photo of the store. Community-verified inventory.</div>
+        <div style="margin-top:8px"><span class="badge b-coral">Phase 3</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🤖 AI assistant</div>
+        <div class="card-sub">"Where can I find a blue kurti under ₹500 near Dadar?" — natural language store finder.</div>
+        <div style="margin-top:8px"><span class="badge b-coral">Phase 3</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Feature set — vendor app</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📦 Product listing</div>
+        <div class="card-sub">Photo + name + price + stock status. Bulk upload via CSV or WhatsApp image. As easy as posting on Instagram.</div>
+        <div style="margin-top:8px"><span class="badge b-teal">Core</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Footfall insights</div>
+        <div class="card-sub">See how many people viewed your store, called, got directions. Which products get the most searches.</div>
+        <div style="margin-top:8px"><span class="badge b-amber">Phase 2</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📣 Local promotions</div>
+        <div class="card-sub">Paid boost to appear at the top of search results in your area. Announcement cards ("New stock arrived!").</div>
+        <div style="margin-top:8px"><span class="badge b-amber">Phase 2</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔗 WhatsApp catalog sync</div>
+        <div class="card-sub">Auto-sync with vendor's existing WhatsApp Business catalog. Zero duplicate effort.</div>
+        <div style="margin-top:8px"><span class="badge b-amber">Phase 2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Customer user flow</div>
+    <div class="flow-row">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-label">Open app</span></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-label">Search item or browse map</span></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-label">See nearby stores</span></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-label">Tap store profile</span></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-label">Get directions / call</span></div>
+    </div>
+    <div class="section-title" style="margin-top:16px">Vendor onboarding flow</div>
+    <div class="flow-row">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-label">Phone OTP signup</span></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-label">Store name + category</span></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-label">Pin location on map</span></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-label">Add first 3 products</span></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-label">Live on app</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">App screen mockups</div>
+    <div class="grid3">
+      <div class="screen">
+        <div class="screen-bar">Customer — home / search</div>
+        <div class="screen-body">
+          <div class="mock-search">🔍 Search items, stores...</div>
+          <div style="margin-bottom:8px;font-size:11px;color:var(--color-text-secondary)">Popular near you</div>
+          <div><span class="mock-chip">Grocery</span><span class="mock-chip">Pharmacy</span><span class="mock-chip">Clothing</span><span class="mock-chip">Electronics</span></div>
+          <div style="margin:10px 0 6px;font-size:11px;color:var(--color-text-secondary)">Stores nearby</div>
+          <div class="mock-store-card">
+            <div class="mock-avatar" style="background:#E1F5EE;">🥦</div>
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Sharma Kirana</div>
+              <div style="font-size:11px;color:var(--color-text-secondary)">340m · Open now · 48 items</div>
+            </div>
+          </div>
+          <div class="mock-store-card">
+            <div class="mock-avatar" style="background:#EEEDFE;">👕</div>
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Riya Garments</div>
+              <div style="font-size:11px;color:var(--color-text-secondary)">520m · Open now · 120 items</div>
+            </div>
+          </div>
+          <div class="mock-store-card">
+            <div class="mock-avatar" style="background:#FAEEDA;">💊</div>
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">MedPlus</div>
+              <div style="font-size:11px;color:var(--color-text-secondary)">1.2km · Open now · 200+ items</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-bar">Customer — store profile</div>
+        <div class="screen-body">
+          <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)">Sharma Kirana</div>
+            <div style="font-size:11px;color:var(--color-text-secondary);margin:2px 0 6px">Dadar West · Open 8am–10pm</div>
+            <div style="display:flex;gap:6px">
+              <span style="background:#E1F5EE;color:#0F6E56;font-size:11px;padding:3px 8px;border-radius:4px">📞 Call</span>
+              <span style="background:#EEEDFE;color:#3C3489;font-size:11px;padding:3px 8px;border-radius:4px">📍 Directions</span>
+              <span style="background:#FAEEDA;color:#854F0B;font-size:11px;padding:3px 8px;border-radius:4px">💬 WhatsApp</span>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">Products (48)</div>
+          <div class="mock-item-row"><span>Amul Butter 500g</span><span style="color:#0F6E56;font-weight:500">₹275</span></div>
+          <div class="mock-item-row"><span>Tata Salt 1kg</span><span style="color:#0F6E56;font-weight:500">₹28</span></div>
+          <div class="mock-item-row"><span>Parle-G 800g</span><span style="color:#0F6E56;font-weight:500">₹95</span></div>
+          <div class="mock-item-row"><span>Dettol Soap ×4</span><span style="font-size:11px;color:#993C1D">Out of stock</span></div>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-bar">Vendor — manage store</div>
+        <div class="screen-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+            <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">142</div>
+              <div style="font-size:11px;color:var(--color-text-secondary)">Views today</div>
+            </div>
+            <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">23</div>
+              <div style="font-size:11px;color:var(--color-text-secondary)">Calls this week</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">My products</div>
+          <div class="mock-item-row">
+            <span>Amul Butter 500g</span>
+            <span style="font-size:11px;background:#E1F5EE;color:#0F6E56;padding:2px 6px;border-radius:4px">In stock</span>
+          </div>
+          <div class="mock-item-row">
+            <span>Tata Salt 1kg</span>
+            <span style="font-size:11px;background:#E1F5EE;color:#0F6E56;padding:2px 6px;border-radius:4px">In stock</span>
+          </div>
+          <div class="mock-item-row">
+            <span>Dettol Soap ×4</span>
+            <span style="font-size:11px;background:#FAECE7;color:#993C1D;padding:2px 6px;border-radius:4px">Out of stock</span>
+          </div>
+          <div style="margin-top:10px;text-align:center">
+            <span style="display:inline-block;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:6px 16px;font-size:12px;color:var(--color-text-primary);cursor:pointer">+ Add product</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Monetization</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Free for vendors (always)</div>
+        <div class="card-sub">Basic listing, up to 50 products, analytics. Must stay free to get critical mass of small vendors onboarded.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Vendor Pro — ₹199–499/month</div>
+        <div class="card-sub">Unlimited products, priority ranking in search, promotional banners, WhatsApp catalog sync, advanced analytics.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Boosted listings (pay-per-day)</div>
+        <div class="card-sub">Vendors pay ₹49–99/day to appear at the top of category results in their area. Low-friction upsell.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Hyperlocal ads</div>
+        <div class="card-sub">Businesses with multiple branches pay for area-specific promotion. Think pharmacy chains, clothing labels.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Launch roadmap</div>
+    <div class="phase">
+      <div class="phase-dot" style="background:#E1F5EE;color:#0F6E56">1</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">MVP — 1 neighbourhood, 1 city</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">Map view, search by item, store profiles, vendor onboarding. Manually onboard 50–100 stores yourself. Validate the "search by item" use case.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-dot" style="background:#EEEDFE;color:#3C3489">2</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Growth — city-wide, self-serve onboarding</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">WhatsApp catalog sync, multilingual support, stock alerts, vendor Pro tier, local-area ambassadors to onboard vendors.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-dot" style="background:#FAEEDA;color:#854F0B">3</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Scale — multi-city, AI features</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">AI natural language search, voice in regional languages, community-verified product data, hyperlocal ad platform.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Your real moat vs magicpin</div>
+    <div class="moat-item" style="border-color:#1D9E75">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Vendor simplicity</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">Magicpin requires effort. Your onboarding should feel like Instagram. Photo + product name + done.</div>
+    </div>
+    <div class="moat-item" style="border-color:#534AB7">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Item-first discovery</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">Nobody lets you search "Allen Solly white shirt size L" and get a map of stores. That specific UX is wide open.</div>
+    </div>
+    <div class="moat-item" style="border-color:#D85A30">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Visitor / tourist mode</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">Explicitly design for "I just landed in this city and need X." Nobody targets this use case.</div>
+    </div>
+    <div class="moat-item" style="border-color:#378ADD">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">No delivery dependency</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:3px">You don't handle logistics. You're a discovery layer, not a Blinkit. Zero operational overhead.</div>
+    </div>
+  </div>
+
+</div>
