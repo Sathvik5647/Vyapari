@@ -34,3 +34,5 @@ npm install
 # Set up your .env file with EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_FASTAPI_URL
 npx expo start
 ```
+
+# Contributor: Sathvik, Atul Singh and Meet Jain
