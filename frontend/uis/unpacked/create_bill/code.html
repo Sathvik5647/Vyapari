@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kinetic Local | Vendor POS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .kinetic-tap:active {
+            transform: scale(0.95);
+            transition: transform 0.1s ease-in-out;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f4fafd;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#9b4500",
+                        "tertiary-container": "#adaaa3",
+                        "tertiary-fixed-dim": "#c9c6bf",
+                        "secondary-fixed": "#a6eff3",
+                        "on-tertiary-fixed": "#1c1c17",
+                        "inverse-surface": "#2b3234",
+                        "surface-container-high": "#e2e9ec",
+                        "primary-container": "#ff8c42",
+                        "on-primary-fixed": "#331200",
+                        "tertiary": "#605e58",
+                        "tertiary-fixed": "#e6e2da",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#ffb68d",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#dde4e6",
+                        "on-tertiary-fixed-variant": "#484741",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f4fafd",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#1b6d71",
+                        "surface-container": "#e8eff1",
+                        "surface-dim": "#d4dbdd",
+                        "on-secondary-fixed": "#002021",
+                        "primary-fixed-dim": "#ffb68d",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#a3ecf0",
+                        "on-error": "#ffffff",
+                        "background": "#f4fafd",
+                        "inverse-on-surface": "#ebf2f4",
+                        "outline-variant": "#ddc1b3",
+                        "on-surface": "#161d1f",
+                        "on-background": "#161d1f",
+                        "primary-fixed": "#ffdbc9",
+                        "on-primary-fixed-variant": "#763300",
+                        "on-tertiary-container": "#403f39",
+                        "on-secondary-fixed-variant": "#004f53",
+                        "primary": "#9b4500",
+                        "secondary": "#14696d",
+                        "on-surface-variant": "#564338",
+                        "surface-container-highest": "#dde4e6",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f4fafd",
+                        "secondary-fixed-dim": "#8ad3d7",
+                        "outline": "#897266",
+                        "surface-container-low": "#eef5f7",
+                        "on-primary-container": "#6a2d00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "stack-md": "24px",
+                        "base": "8px",
+                        "touch-target-min": "48px",
+                        "container-margin": "20px",
+                        "stack-sm": "12px"
+                    },
+                    "fontFamily": {
+                        "title-md": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "display-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-[180px]">
+<!-- Top App Bar -->
+<header class="bg-surface/80 backdrop-blur-xl border-b border-white/20 shadow-sm sticky top-0 z-50 flex justify-between items-center px-container-margin h-touch-target-min w-full">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined text-primary" data-icon="menu">menu</span>
+<h1 class="font-display-lg text-display-lg font-extrabold text-primary">Kinetic Local</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="Vendor Profile Picture" data-alt="A professional headshot of a local artisan merchant, smiling warmly in a bright, sun-filled studio space. The lighting is high-key and natural, creating a clean and trustworthy atmosphere. Soft textures and out-of-focus wooden crafts appear in the background, reinforcing the hyper-local craftsmanship theme with warm earth tones and modern minimalism." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8bL7l29o66yJ-Iwc2zUxMnmUVzQg8OtbHHVRsT-4FM-S4fn5-CJqcRBGqnVew9X8YteAQ6xQaTJtolOZoz3bTNfRdn8VuVwJu52nDepIDqm_lBVeYm41CNC5mGKV7fr4mZmRe5qzSdjrVL3Bphy7WoNZhQiu18kGYJ5XQNjj_mpjz8UM24p2eQeOnll3xN2j0CFryATFgXMpqgwgqqC51xYXd-aDZd2s3Op9CPu3PV1XSmkdSCGMSh6MPMnwACn_tzRw_eajYk-Nb"/>
+</div>
+</header>
+<main class="max-w-[1200px] mx-auto p-container-margin md:grid md:grid-cols-12 md:gap-gutter">
+<!-- Search & Filter Section -->
+<section class="md:col-span-8 flex flex-col gap-stack-md">
+<div class="flex flex-col gap-stack-sm">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Create New Bill</h2>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="w-full h-12 pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-body-lg font-body-lg" placeholder="Search inventory by name or SKU..." type="text"/>
+</div>
+<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+<button class="px-4 py-2 rounded-full bg-secondary text-on-secondary font-label-caps text-label-caps whitespace-nowrap kinetic-tap">All Items</button>
+<button class="px-4 py-2 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-caps text-label-caps whitespace-nowrap kinetic-tap">Handmade</button>
+<button class="px-4 py-2 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-caps text-label-caps whitespace-nowrap kinetic-tap">Textiles</button>
+<button class="px-4 py-2 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-caps text-label-caps whitespace-nowrap kinetic-tap">Pottery</button>
+</div>
+</div>
+<!-- Bento Grid Inventory -->
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Item 1 -->
+<div class="glass-panel p-4 rounded-xl shadow-sm flex flex-col gap-base kinetic-tap border border-outline-variant/30">
+<div class="aspect-square rounded-lg overflow-hidden bg-surface-container-high">
+<img alt="Ceramic Bowl" data-alt="A hand-thrown ceramic bowl with a rustic matte glaze, presented in a brightly lit, minimalist studio setting. The lighting is soft and even, highlighting the tactile texture of the clay. The color palette features warm sands and deep teals, consistent with a modern boutique aesthetic that feels both high-end and artisanal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtW_qwIVa8Sfv90ijlAbOQ6-gr5hFbl5zoU5CoLL5qxQpUXqMN0-PnV7IRH4A-8jQDiIaC08K95gKPbf6EAd7MyRVnyMcaWtdHAI7_5lTaVPeSks_ISAlfHbGT1BV-mqRWkLdWaGRlLsGWuNUtz7qaK14mFUKXPop1X2gtjIPF03ZQxmN_ljKjewHlGD4PEumKb8ccpLm0rwFdwUIFKGkDt8BMgd6LZ46HRXcSA7vCGt4dsbWfwapj9XflcawC1DUIqDcgZp92woVy"/>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-on-surface truncate">Artisan Bowl</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">$24.00</p>
+</div>
+<div class="flex items-center justify-between mt-auto bg-surface-container rounded-lg p-1">
+<button class="w-10 h-10 flex items-center justify-center rounded-md bg-white shadow-sm text-primary kinetic-tap" onclick="decrement('q1')">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<span class="font-title-md text-title-md text-on-surface" id="q1">0</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-md bg-primary text-on-primary shadow-sm kinetic-tap" onclick="increment('q1')">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="glass-panel p-4 rounded-xl shadow-sm flex flex-col gap-base kinetic-tap border border-outline-variant/30">
+<div class="aspect-square rounded-lg overflow-hidden bg-surface-container-high">
+<img alt="Organic Candle" data-alt="A premium organic soy wax candle in a minimalist amber glass jar. The setting is a clean, modern shelf with soft, warm morning light creating gentle shadows. The aesthetic is tranquil and sophisticated, focusing on the luxury of local craftsmanship with a palette of warm oranges and neutral tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWTS9cIOTc56dM6ynngUMy-21y0fQHnnkRekxggiaMdx8oEza8sfuN0GWr4Mh85Tx7y6-mNwLfvz8VdMR8j7jsBgAfX7xApEl6hPUcWMcO4kF1V2knt6WIwjGalf23_p1wWN0xvWBCfHxrrLALXRFZGt0JPU_C0FJdk2K5r0iQwW-a9nbAr_RoCrY2z9chEQf2jAisUvFyTUeDF59iAGAAvc_nmFb0wQNo0qawYKqdonUFZrGv9BOrbdkXZE8ntLo3_ohCFahjg1_e"/>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-on-surface truncate">Soy Candle</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">$18.50</p>
+</div>
+<div class="flex items-center justify-between mt-auto bg-surface-container rounded-lg p-1">
+<button class="w-10 h-10 flex items-center justify-center rounded-md bg-white shadow-sm text-primary kinetic-tap" onclick="decrement('q2')">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<span class="font-title-md text-title-md text-on-surface" id="q2">1</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-md bg-primary text-on-primary shadow-sm kinetic-tap" onclick="increment('q2')">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="glass-panel p-4 rounded-xl shadow-sm flex flex-col gap-base kinetic-tap border border-outline-variant/30">
+<div class="aspect-square rounded-lg overflow-hidden bg-surface-container-high">
+<img alt="Linen Tote" data-alt="A high-quality, sustainable linen tote bag hanging against a bright white wall. The lighting is crisp and clear, emphasizing the natural weave of the fabric. The overall style is modern minimalist with a focus on durability and local production, using a clean color palette of off-white and soft sand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCLMI7MWmqD9Gbjo_zhKFAmcXdmNhDvgaPmsC2qiSRH1cOYBX45XLcDp0HmCUCkICFCSNwhDaDLNYJqtjhYzTFxZsLRTWv3sOm-jeCQSrFg5kUBnZjbpC7cSFVer7FHsu9Xl4SlyD0ylWVWS2iVNmMUaz62VEXSIFOCHH-Pf-HakDfDL4roLqkaK7kQYzAzlpSw7C1PLkUsTnXc4wHm9jll5O3huBhFdkiKBt_ktQXKDP6P87ilqbOR7jk4b6jNu-joPaNO03fh8s3"/>
+</div>
+<div>
+<h3 class="font-title-md text-title-md text-on-surface truncate">Linen Tote</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">$35.00</p>
+</div>
+<div class="flex items-center justify-between mt-auto bg-surface-container rounded-lg p-1">
+<button class="w-10 h-10 flex items-center justify-center rounded-md bg-white shadow-sm text-primary kinetic-tap" onclick="decrement('q3')">
+<span class="material-symbols-outlined" data-icon="remove">remove</span>
+</button>
+<span class="font-title-md text-title-md text-on-surface" id="q3">0</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-md bg-primary text-on-primary shadow-sm kinetic-tap" onclick="increment('q3')">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Side: Order Detail (Desktop) / Cart Float (Mobile) -->
+<aside class="hidden md:block md:col-span-4 h-fit sticky top-[100px]">
+<div class="glass-panel p-6 rounded-2xl border border-outline-variant/50 shadow-lg flex flex-col gap-stack-md">
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-title-md text-on-surface">Order Summary</h3>
+<span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded-lg font-label-caps text-label-caps">2 Items</span>
+</div>
+<div class="flex flex-col gap-base divide-y divide-outline-variant/20">
+<div class="py-2 flex justify-between items-center">
+<div class="font-body-lg text-body-lg text-on-surface">Soy Candle (x1)</div>
+<div class="font-title-md text-title-md text-on-surface">$18.50</div>
+</div>
+<div class="py-2 flex justify-between items-center text-outline">
+<div class="font-body-sm text-body-sm">Subtotal</div>
+<div class="font-body-sm text-body-sm">$18.50</div>
+</div>
+<div class="py-2 flex justify-between items-center text-outline">
+<div class="font-body-sm text-body-sm">Tax (8%)</div>
+<div class="font-body-sm text-body-sm">$1.48</div>
+</div>
+<div class="pt-4 flex justify-between items-center">
+<div class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Total</div>
+<div class="font-headline-lg-mobile text-headline-lg-mobile text-primary">$19.98</div>
+</div>
+</div>
+<button class="w-full h-14 bg-primary text-on-primary rounded-xl font-title-md text-title-md shadow-lg shadow-primary/20 kinetic-tap flex items-center justify-center gap-base">
+<span class="material-symbols-outlined" data-icon="qr_code_2">qr_code_2</span>
+                    Generate Bill &amp; QR
+                </button>
+</div>
+</aside>
+</main>
+<!-- Mobile Floating Summary Bar -->
+<div class="md:hidden fixed bottom-[72px] left-0 w-full px-container-margin pb-4 z-40">
+<div class="bg-inverse-surface text-inverse-on-surface p-4 rounded-2xl flex items-center justify-between shadow-xl">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps opacity-80 uppercase">Total Amount</span>
+<span class="font-headline-lg-mobile text-headline-lg-mobile">$19.98</span>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 h-12 rounded-xl font-title-md text-title-md kinetic-tap flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+                Next
+            </button>
+</div>
+</div>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-0 left-0 w-full h-[72px] flex justify-around items-center px-4 pb-safe bg-surface/90 backdrop-blur-xl border-t border-white/20 shadow-[0px_-4px_20px_rgba(0,0,0,0.04)] z-50 rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="font-label-caps text-label-caps uppercase">Map</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-caps text-label-caps uppercase">Inventory</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-caps text-label-caps uppercase">Billing</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-caps text-label-caps uppercase">Profile</span>
+</a>
+</nav>
+<script>
+        function increment(id) {
+            const el = document.getElementById(id);
+            el.innerText = parseInt(el.innerText) + 1;
+            animatePress(el);
+        }
+
+        function decrement(id) {
+            const el = document.getElementById(id);
+            const val = parseInt(el.innerText);
+            if (val > 0) {
+                el.innerText = val - 1;
+                animatePress(el);
+            }
+        }
+
+        function animatePress(el) {
+            el.classList.add('scale-125', 'text-primary', 'transition-all', 'duration-200');
+            setTimeout(() => {
+                el.classList.remove('scale-125', 'text-primary');
+            }, 200);
+        }
+    </script>
+</body></html>

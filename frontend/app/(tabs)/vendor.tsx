@@ -1,25 +1,27 @@
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
   SafeAreaView, Platform, StatusBar, ActivityIndicator,
-  Modal, TextInput, Alert, KeyboardAvoidingView, useColorScheme, Image
+  Modal, TextInput, Alert, KeyboardAvoidingView, Image
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../utils/supabase';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { ML_API } from '../../utils/api';
+import { Colors } from '../../constants/theme';
 
-const PRIMARY = '#0F6E56';
+const theme = Colors.light;
 
 export default function VendorScreen() {
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+
+  // ── Store Status ───────────────────────────────────────────
+  const [isOpen, setIsOpen] = useState(true);
 
   // ── Add Product Modal ──────────────────────────────────────
   const [showAddModal, setShowAddModal] = useState(false);
@@ -32,20 +34,6 @@ export default function VendorScreen() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isProcessingML, setIsProcessingML] = useState(false);
   const [mlStatusText, setMlStatusText] = useState('');
-
-  // ── Edit Product State ─────────────────────────────────────
-  const [editProduct, setEditProduct] = useState<any>(null);
-  const [editName, setEditName] = useState('');
-  const [editPrice, setEditPrice] = useState('');
-
-  const colors = {
-    bg: isDark ? '#111' : '#F8F9FA',
-    card: isDark ? '#1C1C1E' : '#FFFFFF',
-    text: isDark ? '#FFF' : '#111',
-    textDim: isDark ? '#999' : '#666',
-    border: isDark ? '#333' : '#E8E8E8',
-    input: isDark ? '#2A2A2A' : '#F5F5F5',
-  };
 
   useEffect(() => { fetchVendorData(); }, []);
 
@@ -73,58 +61,36 @@ export default function VendorScreen() {
   };
 
   // ── ML Handlers ────────────────────────────────────────────
-
-  /** Tap once to START, tap again to STOP and process. */
   const handleVoiceToggle = async () => {
-    if (recording) {
-      // ── STOP ──
-      await stopRecordingAndProcess();
-    } else {
-      // ── START ──
-      await beginRecording();
-    }
+    if (recording) await stopRecordingAndProcess();
+    else await beginRecording();
   };
 
   const beginRecording = async () => {
-    // 1. Quick connectivity check first so we fail fast
     setIsProcessingML(true);
     setMlStatusText('Checking ML server...');
     const alive = await ML_API.ping();
     setIsProcessingML(false);
     setMlStatusText('');
     if (!alive) {
-      Alert.alert(
-        'ML Server Unreachable 🚫',
-        `Cannot connect to ${process.env.EXPO_PUBLIC_FASTAPI_URL || 'FastAPI'}.
-
-1. Start FastAPI:  uvicorn main:app --host 0.0.0.0 --port 8000
-2. Make sure your phone and PC are on the same WiFi.
-3. Confirm EXPO_PUBLIC_FASTAPI_URL is your PC’s local IP (e.g. http://192.168.x.x:8000).`
-      );
+      Alert.alert('ML Server Unreachable', 'Start FastAPI backend on 0.0.0.0 and configure IP.');
       return;
     }
-
-    // 2. Mic permission
     const perm = await Audio.requestPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission Denied', 'Microphone access is needed for voice input.');
+      Alert.alert('Permission Denied', 'Microphone access is needed.');
       return;
     }
-
-    // 3. Clean up any stale recording
     if (recording) {
       try { await recording.stopAndUnloadAsync(); } catch (_) {}
       setRecording(null);
     }
-
     try {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording: rec } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      const { recording: rec } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       setRecording(rec);
     } catch (err: any) {
-      Alert.alert('Mic Error', err.message || 'Could not start microphone.');
+      Alert.alert('Mic Error', err.message);
     }
   };
 
@@ -136,26 +102,22 @@ export default function VendorScreen() {
       await rec.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
       const uri = rec.getURI();
-      if (!uri) { Alert.alert('Error', 'No audio recorded.'); return; }
+      if (!uri) return;
 
       setIsProcessingML(true);
       setMlStatusText('Transcribing audio...');
       const transcript = await ML_API.transcribeAudio(uri, 'en');
-      console.log('Transcript:', transcript.text);
       if (!transcript.text.trim()) {
-        Alert.alert('Nothing heard', 'Could not detect speech. Please try again.');
+        Alert.alert('Nothing heard', 'Could not detect speech.');
         return;
       }
-
       setMlStatusText('Extracting product info...');
       const parsed = await ML_API.parseProduct(transcript.text);
-      console.log('Parsed:', parsed);
-
       if (parsed.name) setNewName(parsed.name);
       if (parsed.price) setNewPrice(String(parsed.price));
       if (parsed.unit) setNewUnit(parsed.unit);
     } catch (error: any) {
-      Alert.alert('Voice Error', error.message || 'Something went wrong.');
+      Alert.alert('Voice Error', error.message);
     } finally {
       setIsProcessingML(false);
       setMlStatusText('');
@@ -163,110 +125,48 @@ export default function VendorScreen() {
   };
 
   const handleTakeAPhoto = async () => {
-    // Quick connectivity check
     const alive = await ML_API.ping();
     if (!alive) {
-      Alert.alert(
-        'ML Server Unreachable 🚫',
-        'Start FastAPI with:\n  uvicorn main:app --host 0.0.0.0 --port 8000'
-      );
+      Alert.alert('ML Server Unreachable', 'Ensure FastAPI is running.');
       return;
     }
-
     try {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (perm.status !== 'granted') {
-        Alert.alert('Permission Denied', 'Camera access is needed to take product photos.');
-        return;
-      }
-
+      if (perm.status !== 'granted') return;
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'images' as any, // avoids deprecated MediaTypeOptions warning
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-        base64: true,
+        mediaTypes: 'images' as any, allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true,
       });
-
       if (!result.canceled && result.assets[0].base64) {
         setIsProcessingML(true);
         setMlStatusText('Identifying product...');
         const visionData = await ML_API.identifyProductBase64(result.assets[0].base64);
-        console.log('Vision Data:', visionData);
         if (visionData.name) setNewName(visionData.name);
       }
     } catch (error: any) {
-      Alert.alert('Camera Error', error.message || 'Could not process image.');
+      Alert.alert('Camera Error', error.message);
     } finally {
       setIsProcessingML(false);
       setMlStatusText('');
     }
   };
 
-
-  // ── Standard Handlers ──────────────────────────────────────
-
   const handleAddProduct = async () => {
-    if (!newName.trim()) {
-      Alert.alert('Missing info', 'Please enter a product name.');
-      return;
-    }
+    if (!newName.trim()) return;
     try {
       setAddingProduct(true);
-      // Price stored as plain numeric in Supabase, ₹ is only for display
       const priceNum = newPrice.trim() ? parseFloat(newPrice.trim().replace(/[^0-9.]/g, '')) : 0;
       const displayName = newUnit.trim() ? `${newName.trim()} (${newUnit.trim()})` : newName.trim();
-
       const { data, error } = await supabase
-        .from('products')
-        .insert({
-          store_id: store.id,
-          name: displayName,
-          price: priceNum,
-          is_in_stock: true,
-        })
-        .select()
-        .single();
-
+        .from('products').insert({ store_id: store.id, name: displayName, price: priceNum, is_in_stock: true }).select().single();
       if (error) throw error;
       setProducts(prev => [...prev, data]);
       setNewName(''); setNewPrice(''); setNewUnit('');
       setShowAddModal(false);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to add product');
+      Alert.alert('Error', e.message);
     } finally {
       setAddingProduct(false);
     }
-  };
-
-  const handleEditProduct = async () => {
-    if (!editName.trim()) return;
-    try {
-      const priceNum = editPrice.trim() ? parseFloat(editPrice.trim().replace(/[^0-9.]/g, '')) : 0;
-      const { error } = await supabase
-        .from('products')
-        .update({ name: editName.trim(), price: priceNum })
-        .eq('id', editProduct.id);
-      if (error) throw error;
-      setProducts(prev => prev.map(p =>
-        p.id === editProduct.id ? { ...p, name: editName.trim(), price: priceNum } : p
-      ));
-      setEditProduct(null);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    }
-  };
-
-  const handleDeleteProduct = (product: any) => {
-    Alert.alert('Delete product', `Remove "${product.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive', onPress: async () => {
-          await supabase.from('products').delete().eq('id', product.id);
-          setProducts(prev => prev.filter(p => p.id !== product.id));
-        }
-      }
-    ]);
   };
 
   const toggleStock = async (product: any) => {
@@ -275,294 +175,278 @@ export default function VendorScreen() {
     await supabase.from('products').update({ is_in_stock: newStatus }).eq('id', product.id);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setStore(null); setProducts([]);
-  };
-
-  // ── Loading ──────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bg, justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color={PRIMARY} />
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </SafeAreaView>
     );
   }
 
-  // ── Not onboarded ────────────────────────────────────────
   if (!store) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bg, justifyContent: 'center', padding: 24 }]}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, justifyContent: 'center', padding: 24 }]}>
         <Ionicons name="storefront-outline" size={64} color="#CCC" style={{ alignSelf: 'center', marginBottom: 20 }} />
-        <Text style={[styles.noStoreTitle, { color: colors.text }]}>Vendor Portal</Text>
-        <Text style={[styles.noStoreSub, { color: colors.textDim }]}>
-          Set up your store to appear on the map and start receiving customers.
-        </Text>
-        <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/vendor-setup/')}>
+        <Text style={[styles.noStoreTitle, { color: theme.onSurface }]}>Vendor Portal</Text>
+        <TouchableOpacity style={[styles.ctaBtn, { backgroundColor: theme.primary }]} onPress={() => router.push('/vendor-setup/')}>
           <Text style={styles.ctaBtnText}>Set Up My Store</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  const inStock = products.filter(p => p.is_in_stock).length;
-
-  // ── Main Dashboard ───────────────────────────────────────
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bg }]}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: 120 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.headerLabel, { color: colors.textDim }]}>MANAGE STORE</Text>
-            <Text style={[styles.storeTitle, { color: colors.text }]} numberOfLines={1}>{store.name}</Text>
-            {store.location_text ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                <Ionicons name="location-outline" size={12} color={colors.textDim} />
-                <Text style={[styles.locationText, { color: colors.textDim }]}>{store.location_text}</Text>
-              </View>
-            ) : null}
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={[styles.logoutBtn, { borderColor: colors.border }]}>
-            <Ionicons name="log-out-outline" size={18} color={colors.textDim} />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      {/* TopAppBar */}
+      <View style={[styles.appBar, { backgroundColor: theme.surface }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity style={styles.menuBtn}>
+            <MaterialIcons name="menu" size={24} color={theme.primary} />
           </TouchableOpacity>
+          <Text style={[styles.brandTitle, { color: theme.primary }]}>Vyapari Local</Text>
         </View>
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statNum, { color: colors.text }]}>{products.length}</Text>
-            <Text style={[styles.statLbl, { color: colors.textDim }]}>Products</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statNum, { color: '#27AE60' }]}>{inStock}</Text>
-            <Text style={[styles.statLbl, { color: colors.textDim }]}>In Stock</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statNum, { color: '#E74C3C' }]}>{products.length - inStock}</Text>
-            <Text style={[styles.statLbl, { color: colors.textDim }]}>Out of Stock</Text>
-          </View>
-        </View>
-
-        {/* Bill Generation CTA */}
-        <TouchableOpacity
-          style={[styles.billCTA, { backgroundColor: PRIMARY }]}
-          onPress={() => router.push({ pathname: '/vendor-bill', params: { storeId: store.id, storeName: store.name } })}
-        >
-          <Ionicons name="receipt-outline" size={20} color="#FFF" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.billCTATitle}>Generate Bill</Text>
-            <Text style={styles.billCTASub}>Create & print / share with customer</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
-        </TouchableOpacity>
-
-        {/* Products Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>My Products</Text>
-          <TouchableOpacity
-            style={[styles.addProductBtn, { backgroundColor: PRIMARY + '15', borderColor: PRIMARY + '44' }]}
-            onPress={() => setShowAddModal(true)}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity 
+            style={[styles.statusToggle, { backgroundColor: isOpen ? theme.primary : theme.surfaceContainerHighest }]} 
+            onPress={() => setIsOpen(!isOpen)}
           >
-            <Ionicons name="add" size={16} color={PRIMARY} />
-            <Text style={[styles.addProductBtnText, { color: PRIMARY }]}>Add</Text>
+            <MaterialIcons name="storefront" size={18} color={isOpen ? theme.onPrimary : theme.onSurfaceVariant} />
+            <Text style={[styles.statusLabel, { color: isOpen ? theme.onPrimary : theme.onSurfaceVariant }]}>
+              {isOpen ? 'OPEN' : 'CLOSED'}
+            </Text>
+          </TouchableOpacity>
+          <Image 
+            source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDh-mt_ZazS0o3yocKCNxNg2zi502882-DGmsj5B4vyOum7yT67i1mHxuFQUTG6Gus-GZPcmDJC4-wT0Q1srXEcL2q8lKtAVqStM8adP_1-KjwA3HdgNJDpgqQ5x47nPZx5acU6VWFSYQdmVjYfBvskLnPa2O8zfgQkGoLKfVeUG9XXuF2JZArdlZ3Rj0tBTXqUHoWHZQiA9A3bCpQjeNS2dimzb77N35d2i2n6y_bANGYETqOXNYzl-1Y0FpJOkXKxlMp1jge-aSOI' }}
+            style={[styles.profileImg, { borderColor: theme.primaryContainer }]} 
+          />
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={[styles.overviewLabel, { color: theme.primary }]}>DASHBOARD OVERVIEW</Text>
+          <Text style={[styles.welcomeTitle, { color: theme.onSurface }]}>Welcome back, {store.name}</Text>
+        </View>
+
+        {/* Sales Summary (Visual mock for dashboard aesthetic) */}
+        <View style={[styles.salesCard, { backgroundColor: theme.surfaceContainerLowest }]}>
+          <View style={styles.salesHeader}>
+            <View>
+              <Text style={[styles.salesTitle, { color: theme.onSurface }]}>Today's Sales</Text>
+              <Text style={[styles.salesSub, { color: theme.onSurfaceVariant }]}>Live updates from your storefront</Text>
+            </View>
+            <View style={[styles.badgeContainer, { backgroundColor: theme.secondaryContainer }]}>
+              <Text style={[styles.badgeText, { color: theme.onSecondaryContainer }]}>+12.5% VS YESTERDAY</Text>
+            </View>
+          </View>
+          
+          <View style={styles.salesContent}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.salesAmount, { color: theme.primary }]}>$1,482.00</Text>
+              <Text style={[styles.salesOrders, { color: theme.onSurfaceVariant }]}>24 Total Orders</Text>
+            </View>
+            {/* Simple Bar Chart Visual */}
+            <View style={styles.barChart}>
+              {[40, 60, 45, 80, 55, 95, 70].map((h, i) => (
+                <View key={i} style={[styles.bar, { 
+                  height: `${h}%`, 
+                  backgroundColor: i === 6 ? theme.primary : theme.primaryContainer,
+                  opacity: i === 6 ? 1 : 0.3
+                }]} />
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.primary }]} onPress={() => setShowAddModal(true)}>
+            <MaterialIcons name="qr-code-scanner" size={32} color={theme.onPrimary} />
+            <Text style={[styles.actionLabel, { color: theme.onPrimary }]}>Scan New Item</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: theme.secondary }]} 
+            onPress={() => router.push({ pathname: '/vendor-bill', params: { storeId: store.id, storeName: store.name } })}
+          >
+            <MaterialIcons name="receipt-long" size={32} color={theme.onSecondary} />
+            <Text style={[styles.actionLabel, { color: theme.onSecondary }]}>Generate Bill</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.viewInventoryBtn, { backgroundColor: theme.surfaceContainerHigh, borderColor: theme.outlineVariant }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <MaterialIcons name="inventory-2" size={28} color={theme.primary} />
+              <Text style={[styles.viewInventoryText, { color: theme.onSurface }]}>View Inventory</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color={theme.onSurface} />
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.productsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {products.length === 0 ? (
-            <View style={styles.emptyProducts}>
-              <Ionicons name="cube-outline" size={36} color="#CCC" />
-              <Text style={[styles.emptyText, { color: colors.textDim }]}>No products yet</Text>
-              <Text style={[styles.emptySubText, { color: colors.textDim }]}>Tap "Add" to add your first product</Text>
-            </View>
-          ) : (
-            products.map((product, idx) => (
-              <View
-                key={product.id}
-                style={[
-                  styles.productRow,
-                  { borderBottomWidth: idx < products.length - 1 ? 0.5 : 0, borderBottomColor: colors.border }
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.productName, { color: colors.text }]}>{product.name}</Text>
-                  <Text style={[styles.productPrice, { color: PRIMARY }]}>
-                    {product.price != null ? `₹${product.price}` : '—'}
-                  </Text>
-                </View>
-
-                {/* Stock toggle */}
-                <TouchableOpacity
-                  style={[
-                    styles.stockBadge,
-                    { backgroundColor: product.is_in_stock ? '#E8F8F1' : '#FEF0ED' }
-                  ]}
-                  onPress={() => toggleStock(product)}
-                >
-                  <View style={[styles.stockDot, { backgroundColor: product.is_in_stock ? '#27AE60' : '#E74C3C' }]} />
-                  <Text style={[styles.stockText, { color: product.is_in_stock ? '#1A8A4A' : '#C0392B' }]}>
-                    {product.is_in_stock ? 'In stock' : 'Out'}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Edit */}
-                <TouchableOpacity
-                  style={styles.iconAction}
-                  onPress={() => { setEditProduct(product); setEditName(product.name); setEditPrice(product.price != null ? String(product.price) : ''); }}
-                >
-                  <Ionicons name="pencil-outline" size={16} color={colors.textDim} />
-                </TouchableOpacity>
-
-                {/* Delete */}
-                <TouchableOpacity style={styles.iconAction} onPress={() => handleDeleteProduct(product)}>
-                  <Ionicons name="trash-outline" size={16} color="#E74C3C" />
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
+        {/* Stock Alerts (Functional Products List styled as alerts) */}
+        <View style={[styles.alertsContainer, { backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '4d' }]}>
+          <View style={styles.alertsHeader}>
+            <MaterialIcons name="notifications-active" size={24} color={theme.error} />
+            <Text style={[styles.alertsTitle, { color: theme.onSurface }]}>Inventory Status</Text>
+          </View>
+          
+          <View style={{ gap: 12 }}>
+            {products.length === 0 ? (
+              <Text style={{ textAlign: 'center', marginVertical: 20, fontFamily: 'PlusJakartaSans_400Regular', color: theme.onSurfaceVariant }}>
+                No products yet. Scan a new item to get started!
+              </Text>
+            ) : (
+              products.map((p) => {
+                const inStock = p.is_in_stock;
+                const bgColor = theme.surfaceContainerLowest;
+                const leftBorderColor = inStock ? theme.primaryContainer : theme.error;
+                const iconColor = inStock ? theme.onPrimaryContainer : theme.onErrorContainer;
+                const iconBg = inStock ? theme.primaryContainer + '40' : theme.errorContainer;
+                const iconName = inStock ? 'check-circle' : 'warning';
+                
+                return (
+                  <View key={p.id} style={[styles.alertCard, { backgroundColor: bgColor, borderLeftColor: leftBorderColor }]}>
+                    <View style={[styles.alertIconWrapper, { backgroundColor: iconBg }]}>
+                      <MaterialIcons name={iconName} size={20} color={iconColor} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.alertItemName, { color: theme.onSurface }]}>{p.name}</Text>
+                      <Text style={[styles.alertItemSub, { color: theme.onSurfaceVariant }]}>
+                        {inStock ? `₹${p.price} • In Stock` : 'Out of Stock'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => toggleStock(p)}>
+                      <Text style={[styles.restockText, { color: theme.primary }]}>
+                        {inStock ? 'MARK OUT' : 'RESTOCK'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            )}
+          </View>
         </View>
       </ScrollView>
 
-      {/* ─── Add Product Modal ─────────────────────────────────── */}
-      <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAddModal(false)} />
-          <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHandle} />
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Add Product</Text>
-            </View>
+      {/* Floating Action Button */}
+      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary }]} onPress={() => setShowAddModal(true)}>
+        <MaterialIcons name="add" size={32} color={theme.onPrimary} />
+      </TouchableOpacity>
 
-            {/* AI Action Buttons */}
-            <View style={styles.aiToolsContainer}>
-              <TouchableOpacity
-                style={[styles.aiBtn, recording ? styles.aiBtnActive : { backgroundColor: colors.input, borderColor: colors.border }]}
-                onPress={handleVoiceToggle}
-                disabled={isProcessingML}
-              >
-                <Ionicons name={recording ? "mic" : "mic-outline"} size={22} color={recording ? "#FFF" : PRIMARY} />
-                <Text style={[styles.aiBtnText, { color: recording ? "#FFF" : PRIMARY }]}>
-                  {recording ? "Tap to Stop ⏹" : "Tap to Record 🎙"}
+      {/* Full Screen Add Product Modal */}
+      <Modal visible={showAddModal} transparent={false} animationType="slide" onRequestClose={() => setShowAddModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+          {/* TopAppBar */}
+          <View style={[styles.appBar, { backgroundColor: theme.surface, borderBottomWidth: 0, elevation: 0 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <TouchableOpacity onPress={() => setShowAddModal(false)} style={styles.menuBtn}>
+                <MaterialIcons name="close" size={28} color={theme.primary} />
+              </TouchableOpacity>
+              <Text style={[styles.brandTitle, { color: theme.primary }]}>Add New Item</Text>
+            </View>
+            <Image 
+              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDh-mt_ZazS0o3yocKCNxNg2zi502882-DGmsj5B4vyOum7yT67i1mHxuFQUTG6Gus-GZPcmDJC4-wT0Q1srXEcL2q8lKtAVqStM8adP_1-KjwA3HdgNJDpgqQ5x47nPZx5acU6VWFSYQdmVjYfBvskLnPa2O8zfgQkGoLKfVeUG9XXuF2JZArdlZ3Rj0tBTXqUHoWHZQiA9A3bCpQjeNS2dimzb77N35d2i2n6y_bANGYETqOXNYzl-1Y0FpJOkXKxlMp1jge-aSOI' }}
+              style={[styles.profileImg, { borderColor: theme.primary }]} 
+            />
+          </View>
+
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }} keyboardShouldPersistTaps="handled">
+            {/* Viewfinder Section */}
+            <TouchableOpacity 
+              activeOpacity={0.9} 
+              style={styles.viewfinderSection} 
+              onPress={handleTakeAPhoto}
+            >
+              <Image 
+                source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAV2hTtWi78BECrizOsLjaw1X50Zx5FHnVWYgZ-4-6B_lxhFhu669Bp0eUlaqoCIzgiYsNZ5mL2P7rKxZ5onZkrsT4VKfGSqOcjVXrct8Dr4b8uqtHIw6JqmXhFzSCq4knYsjlgf6tU3PXYiA7KgDQZeEQW3mDDZurCFTosPil5X7_IAxoRw9x7WW9pYoivMzd_N4Lo9yTeujdIkUoojdslOOMDWTGwJeVu86t79HJa8XNuKeaoEKc1derUUDl7ZVHPAh79q_au6aW1' }} 
+                style={styles.viewfinderImage} 
+              />
+              <View style={styles.viewfinderOverlay}>
+                <View style={[styles.scanBox, { borderColor: theme.primary }]}>
+                  <View style={[styles.scanBadge, { backgroundColor: theme.primary }]}>
+                    <MaterialIcons name="auto-awesome" size={14} color={theme.onPrimary} />
+                    <Text style={[styles.scanBadgeText, { color: theme.onPrimary }]}>Tap to Scan Photo</Text>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Voice & Control Layer */}
+            <View style={styles.voiceControlContainer}>
+              <View style={[styles.glassPanel, { backgroundColor: theme.surfaceContainerLowest, borderColor: 'rgba(255,255,255,0.3)' }]}>
+                <Text style={[styles.voiceLabel, { color: theme.onSurfaceVariant }]}>Describe your product now</Text>
+                
+                {/* Voice Visualizer Mock */}
+                <View style={styles.waveformContainer}>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((i) => (
+                    <View key={i} style={[styles.voiceBar, { height: recording ? Math.random() * 24 + 8 : 4, backgroundColor: theme.primary }]} />
+                  ))}
+                </View>
+
+                <TouchableOpacity 
+                  style={[styles.micBtn, { backgroundColor: recording ? theme.error : theme.primary }]} 
+                  onPress={handleVoiceToggle} 
+                  disabled={isProcessingML}
+                >
+                  <MaterialIcons name={recording ? "stop" : "mic"} size={32} color={theme.onPrimary} />
+                </TouchableOpacity>
+                <Text style={[styles.voiceHint, { color: theme.primary }]}>
+                  {recording ? '"Listening..."' : (mlStatusText ? `"${mlStatusText}"` : '"Handcrafted ceramic watch with leather strap..."')}
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.aiBtn, { backgroundColor: colors.input, borderColor: colors.border }]}
-                onPress={handleTakeAPhoto}
-                disabled={isProcessingML || !!recording}
-              >
-                <Ionicons name="camera-outline" size={22} color={PRIMARY} />
-                <Text style={[styles.aiBtnText, { color: PRIMARY }]}>Scan Photo</Text>
-              </TouchableOpacity>
+              </View>
             </View>
 
-            {isProcessingML && (
-              <View style={styles.mlLoading}>
-                <ActivityIndicator size="small" color={PRIMARY} />
-                <Text style={{ color: PRIMARY, fontSize: 13, fontWeight: '600' }}>{mlStatusText}</Text>
-              </View>
-            )}
-
-            <Text style={[styles.inputLabel, { color: colors.textDim }]}>Product Name *</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
-              placeholder="e.g. Amul Butter 500g"
-              placeholderTextColor="#AAA"
-              value={newName}
-              onChangeText={setNewName}
-            />
-
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.inputLabel, { color: colors.textDim }]}>Price (₹)</Text>
+            {/* Form Section */}
+            <View style={styles.formSection}>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.formLabel, { color: theme.onSurfaceVariant }]}>Product Name</Text>
                 <TextInput
-                  style={[styles.textInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
-                  placeholder="e.g. 55"
-                  placeholderTextColor="#AAA"
-                  keyboardType="numeric"
-                  value={newPrice}
-                  onChangeText={setNewPrice}
+                  style={[styles.formInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant }]}
+                  placeholder="Artisan Ceramic Watch" placeholderTextColor={theme.outline} value={newName} onChangeText={setNewName}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.inputLabel, { color: colors.textDim }]}>Unit (optional)</Text>
+
+              <View style={styles.formRow}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={[styles.formLabel, { color: theme.onSurfaceVariant }]}>Price (₹)</Text>
+                  <TextInput
+                    style={[styles.formInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant }]}
+                    placeholder="125.00" placeholderTextColor={theme.outline} keyboardType="numeric" value={newPrice} onChangeText={setNewPrice}
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={[styles.formLabel, { color: theme.onSurfaceVariant }]}>Unit (opt)</Text>
+                  <TextInput
+                    style={[styles.formInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant }]}
+                    placeholder="e.g. 500g" placeholderTextColor={theme.outline} value={newUnit} onChangeText={setNewUnit}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.formLabel, { color: theme.onSurfaceVariant }]}>Description</Text>
                 <TextInput
-                  style={[styles.textInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
-                  placeholder="e.g. 500g, 1L"
-                  placeholderTextColor="#AAA"
-                  value={newUnit}
-                  onChangeText={setNewUnit}
+                  style={[styles.formInput, { height: 100, textAlignVertical: 'top', backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant }]}
+                  placeholder="Add a product description..." placeholderTextColor={theme.outline} multiline
                 />
               </View>
+
+              {/* Action Buttons */}
+              <View style={styles.actionButtonsContainer}>
+                <TouchableOpacity 
+                  style={[styles.submitBtn, { backgroundColor: theme.primaryContainer }]} 
+                  onPress={handleAddProduct} disabled={addingProduct}
+                >
+                  <MaterialIcons name="check-circle" size={24} color={theme.onPrimaryContainer} />
+                  <Text style={[styles.submitBtnText, { color: theme.onPrimaryContainer }]}>
+                    {addingProduct ? 'Adding...' : 'List Product'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.draftBtn, { backgroundColor: theme.surfaceContainerHighest }]} onPress={() => setShowAddModal(false)}>
+                  <Text style={[styles.draftBtnText, { color: theme.onSurface }]}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-              <TouchableOpacity
-                style={[styles.modalBtnSecondary, { borderColor: colors.border }]}
-                onPress={() => { setShowAddModal(false); setNewName(''); setNewPrice(''); setNewUnit(''); }}
-              >
-                <Text style={[styles.modalBtnSecondaryText, { color: colors.textDim }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: PRIMARY, opacity: addingProduct || isProcessingML ? 0.7 : 1 }]}
-                onPress={handleAddProduct}
-                disabled={addingProduct || isProcessingML}
-              >
-                {addingProduct
-                  ? <ActivityIndicator color="#FFF" size="small" />
-                  : <Text style={styles.modalBtnPrimaryText}>Add Product</Text>
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* ─── Edit Product Modal ────────────────────────────────── */}
-      <Modal visible={editProduct != null} transparent animationType="slide" onRequestClose={() => setEditProduct(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setEditProduct(null)} />
-          <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHandle} />
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Product</Text>
-
-            <Text style={[styles.inputLabel, { color: colors.textDim }]}>Product Name</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
-              value={editName}
-              onChangeText={setEditName}
-              autoFocus
-            />
-
-            <Text style={[styles.inputLabel, { color: colors.textDim }]}>Price (₹)</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
-              value={editPrice}
-              onChangeText={setEditPrice}
-              keyboardType="numeric"
-            />
-
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-              <TouchableOpacity
-                style={[styles.modalBtnSecondary, { borderColor: colors.border }]}
-                onPress={() => setEditProduct(null)}
-              >
-                <Text style={[styles.modalBtnSecondaryText, { color: colors.textDim }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtnPrimary, { backgroundColor: PRIMARY }]}
-                onPress={handleEditProduct}
-              >
-                <Text style={styles.modalBtnPrimaryText}>Save Changes</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -570,69 +454,84 @@ export default function VendorScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
-  container: { padding: 16 },
-
-  // Header
-  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 12 },
-  headerLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
-  storeTitle: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  locationText: { fontSize: 12 },
-  logoutBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-
-  // Stats
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  statCard: { flex: 1, borderRadius: 14, borderWidth: 1, padding: 14, alignItems: 'center' },
-  statNum: { fontSize: 26, fontWeight: '800', marginBottom: 2 },
-  statLbl: { fontSize: 11, textAlign: 'center' },
-
-  // Bill CTA
-  billCTA: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, marginBottom: 24 },
-  billCTATitle: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  billCTASub: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 1 },
-
-  // Products
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: '700' },
-  addProductBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  addProductBtnText: { fontSize: 13, fontWeight: '700' },
-  productsCard: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
-  emptyProducts: { alignItems: 'center', paddingVertical: 36, gap: 8 },
-  emptyText: { fontSize: 15, fontWeight: '600' },
-  emptySubText: { fontSize: 13 },
-  productRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
-  productName: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
-  productPrice: { fontSize: 13, fontWeight: '700' },
-  stockBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
-  stockDot: { width: 6, height: 6, borderRadius: 3 },
-  stockText: { fontSize: 11, fontWeight: '600' },
-  iconAction: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-
-  // No store
-  noStoreTitle: { fontSize: 26, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  noStoreSub: { fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 22 },
-  ctaBtn: { backgroundColor: '#0F6E56', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-  ctaBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-
-  // Modal
-  modalBackdrop: { flex: 1 },
-  modalSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
-  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#DDD', alignSelf: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 0 },
+  container: { paddingHorizontal: 20, paddingVertical: 24, paddingBottom: 100 },
   
-  // AI Tools
-  aiToolsContainer: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  aiBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1, gap: 6 },
-  aiBtnActive: { backgroundColor: '#E74C3C', borderColor: '#E74C3C' },
-  aiBtnText: { fontSize: 14, fontWeight: '700' },
-  mlLoading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, backgroundColor: '#0F6E5615', borderRadius: 12, marginBottom: 16 },
+  // AppBar
+  appBar: { height: 60, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)', elevation: 2 },
+  menuBtn: { padding: 4, borderRadius: 20 },
+  brandTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 22, letterSpacing: -0.5 },
+  statusToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, elevation: 1 },
+  statusLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, letterSpacing: 0.6 },
+  profileImg: { width: 36, height: 36, borderRadius: 18, borderWidth: 2 },
 
-  inputLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.3, marginBottom: 6, textTransform: 'uppercase' },
-  textInput: {
-    borderRadius: 12, borderWidth: 1, height: 48,
-    paddingHorizontal: 14, fontSize: 15, marginBottom: 16,
-  },
-  modalBtnSecondary: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  modalBtnSecondaryText: { fontSize: 15, fontWeight: '600' },
-  modalBtnPrimary: { flex: 1, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  modalBtnPrimaryText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
+  // Welcome
+  welcomeSection: { marginBottom: 24 },
+  overviewLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6 },
+  welcomeTitle: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 28, lineHeight: 36 },
+
+  // Sales
+  salesCard: { borderRadius: 16, padding: 24, elevation: 2, marginBottom: 24 },
+  salesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  salesTitle: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 20 },
+  salesSub: { fontFamily: 'PlusJakartaSans_400Regular', fontSize: 14 },
+  badgeContainer: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 10, letterSpacing: 0.5 },
+  salesContent: { flexDirection: 'row', alignItems: 'center' },
+  salesAmount: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 32, letterSpacing: -0.5 },
+  salesOrders: { fontFamily: 'PlusJakartaSans_400Regular', fontSize: 16 },
+  barChart: { flex: 1, height: 60, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingLeft: 20 },
+  bar: { width: '10%', borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+
+  // Actions
+  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
+  actionBtn: { flex: 1, minWidth: '45%', borderRadius: 16, padding: 16, alignItems: 'center', justifyContent: 'center', gap: 12, elevation: 2 },
+  actionLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 },
+  viewInventoryBtn: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 16, borderWidth: 1 },
+  viewInventoryText: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 20 },
+
+  // Alerts
+  alertsContainer: { borderRadius: 16, borderWidth: 1, padding: 24 },
+  alertsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  alertsTitle: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 20 },
+  alertCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 8, borderLeftWidth: 4, elevation: 1 },
+  alertIconWrapper: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  alertItemName: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16 },
+  alertItemSub: { fontFamily: 'PlusJakartaSans_400Regular', fontSize: 14 },
+  restockText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, letterSpacing: 0.6 },
+
+  // FAB
+  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 20, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+
+  // No Store
+  noStoreTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 28, textAlign: 'center', marginBottom: 24 },
+  ctaBtn: { paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
+  ctaBtnText: { color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold', fontSize: 16 },
+
+  // Add Item Modal
+  viewfinderSection: { width: '100%', aspectRatio: 1.5, backgroundColor: '#000', overflow: 'hidden' },
+  viewfinderImage: { width: '100%', height: '100%', opacity: 0.8 },
+  viewfinderOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  scanBox: { width: '50%', height: '50%', borderWidth: 2, borderRadius: 16, alignItems: 'flex-end', padding: 8 },
+  scanBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  scanBadgeText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase' },
+  
+  voiceControlContainer: { paddingHorizontal: 20, marginTop: -32, zIndex: 10 },
+  glassPanel: { borderRadius: 24, padding: 24, alignItems: 'center', borderWidth: 1, elevation: 4 },
+  voiceLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase', opacity: 0.7, marginBottom: 16 },
+  waveformContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 48, width: '100%', marginBottom: 16 },
+  voiceBar: { width: 4, borderRadius: 2 },
+  micBtn: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', elevation: 4, marginBottom: 16 },
+  voiceHint: { fontFamily: 'PlusJakartaSans_400Regular', fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
+  
+  formSection: { marginTop: 24, paddingHorizontal: 20, gap: 20 },
+  inputGroup: { gap: 8 },
+  formRow: { flexDirection: 'row', gap: 16 },
+  formLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase', marginLeft: 4 },
+  formInput: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 16 },
+  
+  actionButtonsContainer: { gap: 12, marginTop: 8 },
+  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 16, elevation: 2 },
+  submitBtnText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 20 },
+  draftBtn: { alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16 },
+  draftBtnText: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 20 },
 });

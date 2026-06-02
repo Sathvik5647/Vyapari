@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "local-vendor-app",
-    "slug": "local-vendor-app",
+    "name": "Vyapari",
+    "slug": "vyapari",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "localvendorapp",
+    "scheme": "vyapari",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

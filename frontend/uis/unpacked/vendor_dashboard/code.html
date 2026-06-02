@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vendor Dashboard - Kinetic Local</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary": "#ffffff",
+                      "surface-tint": "#9b4500",
+                      "tertiary-container": "#adaaa3",
+                      "tertiary-fixed-dim": "#c9c6bf",
+                      "secondary-fixed": "#a6eff3",
+                      "on-tertiary-fixed": "#1c1c17",
+                      "inverse-surface": "#2b3234",
+                      "surface-container-high": "#e2e9ec",
+                      "primary-container": "#ff8c42",
+                      "on-primary-fixed": "#331200",
+                      "tertiary": "#605e58",
+                      "tertiary-fixed": "#e6e2da",
+                      "error-container": "#ffdad6",
+                      "inverse-primary": "#ffb68d",
+                      "on-secondary": "#ffffff",
+                      "surface-variant": "#dde4e6",
+                      "on-tertiary-fixed-variant": "#484741",
+                      "surface-container-lowest": "#ffffff",
+                      "surface": "#f4fafd",
+                      "error": "#ba1a1a",
+                      "on-secondary-container": "#1b6d71",
+                      "surface-container": "#e8eff1",
+                      "surface-dim": "#d4dbdd",
+                      "on-secondary-fixed": "#002021",
+                      "primary-fixed-dim": "#ffb68d",
+                      "on-tertiary": "#ffffff",
+                      "secondary-container": "#a3ecf0",
+                      "on-error": "#ffffff",
+                      "background": "#f4fafd",
+                      "inverse-on-surface": "#ebf2f4",
+                      "outline-variant": "#ddc1b3",
+                      "on-surface": "#161d1f",
+                      "on-background": "#161d1f",
+                      "primary-fixed": "#ffdbc9",
+                      "on-primary-fixed-variant": "#763300",
+                      "on-tertiary-container": "#403f39",
+                      "on-secondary-fixed-variant": "#004f53",
+                      "primary": "#9b4500",
+                      "secondary": "#14696d",
+                      "on-surface-variant": "#564338",
+                      "surface-container-highest": "#dde4e6",
+                      "on-error-container": "#93000a",
+                      "surface-bright": "#f4fafd",
+                      "secondary-fixed-dim": "#8ad3d7",
+                      "outline": "#897266",
+                      "surface-container-low": "#eef5f7",
+                      "on-primary-container": "#6a2d00"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "stack-md": "24px",
+                      "base": "8px",
+                      "touch-target-min": "48px",
+                      "container-margin": "20px",
+                      "stack-sm": "12px"
+              },
+              "fontFamily": {
+                      "title-md": ["Plus Jakarta Sans"],
+                      "headline-lg-mobile": ["Plus Jakarta Sans"],
+                      "display-lg": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "body-lg": ["Plus Jakarta Sans"],
+                      "body-sm": ["Plus Jakarta Sans"],
+                      "label-caps": ["Plus Jakarta Sans"]
+              },
+              "fontSize": {
+                      "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                      "display-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body { background-color: #f4fafd; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .active-scale:active { transform: scale(0.95); transition: transform 0.1s ease-in-out; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background">
+<!-- TopAppBar -->
+<header class="bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm border-b border-white/20 flex justify-between items-center px-container-margin h-touch-target-min w-full">
+<div class="flex items-center gap-4">
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-primary-container/20 p-2 rounded-full active-scale">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-display-lg text-display-lg font-extrabold text-primary dark:text-primary-fixed-dim">Kinetic Local</h1>
+</div>
+<div class="flex items-center gap-4">
+<!-- Store Status Toggle -->
+<div class="hidden md:flex items-center bg-surface-container rounded-full p-1 border border-outline-variant">
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300 bg-primary text-on-primary shadow-md" id="statusToggle" onclick="toggleStoreStatus()">
+<span class="material-symbols-outlined text-[18px]">storefront</span>
+<span class="font-label-caps text-label-caps" id="statusLabel">OPEN</span>
+</button>
+</div>
+<img alt="Vendor Profile Picture" class="w-10 h-10 rounded-full border-2 border-primary-container object-cover" data-alt="A professional headshot of a smiling local merchant in a sun-drenched outdoor market setting. The lighting is warm and golden, reflecting the hyper-local kinetic energy of the brand. The background is softly blurred, showing hints of colorful artisan crafts and modern stall structures, maintaining a clean and vibrant aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDh-mt_ZazS0o3yocKCNxNg2zi502882-DGmsj5B4vyOum7yT67i1mHxuFQUTG6Gus-GZPcmDJC4-wT0Q1srXEcL2q8lKtAVqStM8adP_1-KjwA3HdgNJDpgqQ5x47nPZx5acU6VWFSYQdmVjYfBvskLnPa2O8zfgQkGoLKfVeUG9XXuF2JZArdlZ3Rj0tBTXqUHoWHZQiA9A3bCpQjeNS2dimzb77N35d2i2n6y_bANGYETqOXNYzl-1Y0FpJOkXKxlMp1jge-aSOI"/>
+</div>
+</header>
+<main class="max-w-[1200px] mx-auto px-container-margin py-stack-md pb-[100px] md:pb-stack-md">
+<!-- Welcome Section -->
+<section class="mb-stack-md flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<span class="font-label-caps text-label-caps text-primary uppercase tracking-widest">Dashboard Overview</span>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mt-2">Welcome back, Artisan Hub</h2>
+</div>
+<!-- Mobile Toggle -->
+<div class="md:hidden flex">
+<button class="flex flex-1 items-center justify-center gap-2 bg-surface-container rounded-xl p-4 border border-outline-variant active-scale" onclick="toggleStoreStatus()">
+<span class="material-symbols-outlined text-primary" id="mobileStatusIcon">storefront</span>
+<div class="text-left">
+<p class="font-label-caps text-label-caps text-on-surface-variant">STORE STATUS</p>
+<p class="font-title-md text-title-md text-primary" id="mobileStatusLabel">Open</p>
+</div>
+</button>
+</div>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Sales Summary (Bento Large) -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-xl p-stack-md shadow-[0px_4px_20px_rgba(0,0,0,0.04)] relative overflow-hidden">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="font-title-md text-title-md text-on-surface">Today's Sales</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Live updates from your storefront</p>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-caps text-label-caps">
+                        +12.5% VS YESTERDAY
+                    </div>
+</div>
+<div class="flex flex-col md:flex-row items-center gap-8 py-4">
+<div class="text-center md:text-left">
+<span class="font-display-lg text-display-lg text-primary">$1,482.00</span>
+<p class="font-body-lg text-body-lg text-on-surface-variant">24 Total Orders</p>
+</div>
+<div class="flex-1 w-full h-32 flex items-end gap-2 px-2">
+<!-- Simple visual bar chart -->
+<div class="flex-1 bg-primary-container/20 rounded-t-lg h-[40%]"></div>
+<div class="flex-1 bg-primary-container/20 rounded-t-lg h-[60%]"></div>
+<div class="flex-1 bg-primary-container/20 rounded-t-lg h-[45%]"></div>
+<div class="flex-1 bg-primary-container/20 rounded-t-lg h-[80%]"></div>
+<div class="flex-1 bg-primary-container/20 rounded-t-lg h-[55%]"></div>
+<div class="flex-1 bg-primary-container/60 rounded-t-lg h-[95%]"></div>
+<div class="flex-1 bg-primary rounded-t-lg h-[70%]"></div>
+</div>
+</div>
+</div>
+<!-- Quick Actions Grid -->
+<div class="md:col-span-4 grid grid-cols-2 gap-4">
+<button class="bg-primary text-on-primary rounded-xl p-4 flex flex-col items-center justify-center gap-3 active-scale shadow-md hover:bg-primary/90 transition-colors">
+<span class="material-symbols-outlined text-[32px]">qr_code_scanner</span>
+<span class="font-label-caps text-label-caps text-center">Scan New Item</span>
+</button>
+<button class="bg-secondary text-on-secondary rounded-xl p-4 flex flex-col items-center justify-center gap-3 active-scale shadow-md hover:bg-secondary/90 transition-colors">
+<span class="material-symbols-outlined text-[32px]">receipt_long</span>
+<span class="font-label-caps text-label-caps text-center">Generate Bill</span>
+</button>
+<button class="col-span-2 bg-surface-container-high text-on-surface rounded-xl p-4 flex items-center justify-between px-6 active-scale border border-outline-variant hover:bg-surface-container-highest transition-all">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-[28px]">inventory_2</span>
+<span class="font-title-md text-title-md">View Inventory</span>
+</div>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<!-- Stock Alerts (Asymmetric Card) -->
+<div class="md:col-span-5 bg-surface-container-low border border-outline-variant/30 rounded-xl p-stack-md">
+<div class="flex items-center gap-2 mb-stack-sm text-error">
+<span class="material-symbols-outlined">notifications_active</span>
+<h3 class="font-title-md text-title-md">Stock Alerts</h3>
+</div>
+<div class="space-y-3">
+<div class="flex items-center gap-4 p-3 bg-white rounded-lg border-l-4 border-error shadow-sm">
+<div class="bg-error-container text-on-error-container w-10 h-10 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+</div>
+<div class="flex-1">
+<p class="font-body-lg text-body-lg font-bold">Handmade Soap (Oatmeal)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Only 2 items remaining</p>
+</div>
+<button class="text-primary font-label-caps text-label-caps">RESTOCK</button>
+</div>
+<div class="flex items-center gap-4 p-3 bg-white rounded-lg border-l-4 border-primary-container shadow-sm">
+<div class="bg-primary-fixed text-on-primary-fixed w-10 h-10 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">trending_down</span>
+</div>
+<div class="flex-1">
+<p class="font-body-lg text-body-lg font-bold">Woven Coasters (Set of 4)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Low stock: 5 units left</p>
+</div>
+<button class="text-primary font-label-caps text-label-caps">RESTOCK</button>
+</div>
+</div>
+</div>
+<!-- Recent Activity (Glassmorphic) -->
+<div class="md:col-span-7 glass rounded-xl p-stack-md shadow-sm border border-white/40">
+<h3 class="font-title-md text-title-md text-on-surface mb-stack-sm">Recent Activity</h3>
+<div class="space-y-4">
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-3">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<p class="font-body-lg text-body-lg">Order #4829 completed</p>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">2m ago</span>
+</div>
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-3">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<p class="font-body-lg text-body-lg">New review from "UrbanExplorer"</p>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">15m ago</span>
+</div>
+<div class="flex justify-between items-center border-b border-outline-variant/20 pb-3">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<p class="font-body-lg text-body-lg">Inventory sync complete</p>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">1h ago</span>
+</div>
+</div>
+<button class="mt-4 w-full py-2 font-label-caps text-label-caps text-primary text-center">VIEW ALL LOGS</button>
+</div>
+</div>
+</main>
+<!-- Navigation Components -->
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full h-[72px] bg-surface/90 dark:bg-surface-dim/90 backdrop-blur-xl border-t border-white/20 shadow-[0px_-4px_20px_rgba(0,0,0,0.04)] z-50 flex justify-around items-center px-4 pb-safe rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active-scale transition-all" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-caps text-label-caps uppercase">Map</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active-scale transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label-caps text-label-caps uppercase">Inventory</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active-scale transition-all" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-caps text-label-caps uppercase">Billing</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant p-2 active-scale transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-caps text-label-caps uppercase">Profile</span>
+</a>
+</nav>
+<!-- Optional Floating Action Button -->
+<button class="fixed bottom-[88px] right-6 md:bottom-10 md:right-10 w-14 h-14 bg-primary text-on-primary rounded-2xl shadow-xl flex items-center justify-center active-scale transition-transform">
+<span class="material-symbols-outlined text-[32px]">add</span>
+</button>
+<script>
+        let isOpen = true;
+
+        function toggleStoreStatus() {
+            isOpen = !isOpen;
+            const statusLabel = document.getElementById('statusLabel');
+            const statusToggle = document.getElementById('statusToggle');
+            const mobileLabel = document.getElementById('mobileStatusLabel');
+            const mobileIcon = document.getElementById('mobileStatusIcon');
+
+            if (isOpen) {
+                statusLabel.innerText = 'OPEN';
+                mobileLabel.innerText = 'Open';
+                statusToggle.classList.remove('bg-surface-container-highest', 'text-on-surface-variant');
+                statusToggle.classList.add('bg-primary', 'text-on-primary');
+                mobileIcon.classList.remove('text-on-surface-variant');
+                mobileIcon.classList.add('text-primary');
+            } else {
+                statusLabel.innerText = 'CLOSED';
+                mobileLabel.innerText = 'Closed';
+                statusToggle.classList.remove('bg-primary', 'text-on-primary');
+                statusToggle.classList.add('bg-surface-container-highest', 'text-on-surface-variant');
+                mobileIcon.classList.remove('text-primary');
+                mobileIcon.classList.add('text-on-surface-variant');
+            }
+        }
+    </script>
+</body></html>
