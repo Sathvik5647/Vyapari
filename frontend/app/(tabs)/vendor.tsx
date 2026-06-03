@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../utils/supabase';
+import { apiClient } from '../../utils/apiClient';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { ML_API } from '../../utils/api';
@@ -40,21 +41,19 @@ export default function VendorScreen() {
   const fetchVendorData = async () => {
     try {
       setLoading(true);
-      const { data: userAuth } = await supabase.auth.getUser();
-      const vendorId = userAuth.user?.id;
-      if (!vendorId) { setLoading(false); return; }
-
-      const { data: storeData } = await supabase
-        .from('stores').select('*').eq('vendor_id', vendorId).single();
-
+      const storeData = await apiClient.get('/api/stores/mine');
       if (storeData) {
         setStore(storeData);
-        const { data: productData } = await supabase
-          .from('products').select('*').eq('store_id', storeData.id).order('name');
+        const productData = await apiClient.get(
+          `/api/stores/${storeData.id}/products`
+        );
         setProducts(productData || []);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      // 404 = no store yet, that's fine
+      if (!e.message?.includes('404') && !e.message?.includes('No store')) {
+        console.error(e);
+      }
     } finally {
       setLoading(false);
     }
@@ -156,9 +155,11 @@ export default function VendorScreen() {
       setAddingProduct(true);
       const priceNum = newPrice.trim() ? parseFloat(newPrice.trim().replace(/[^0-9.]/g, '')) : 0;
       const displayName = newUnit.trim() ? `${newName.trim()} (${newUnit.trim()})` : newName.trim();
-      const { data, error } = await supabase
-        .from('products').insert({ store_id: store.id, name: displayName, price: priceNum, is_in_stock: true }).select().single();
-      if (error) throw error;
+      const { data, error } = await apiClient.post(`/api/stores/${store.id}/products`, {
+        name: displayName,
+        price: priceNum,
+        is_in_stock: true,
+      });
       setProducts(prev => [...prev, data]);
       setNewName(''); setNewPrice(''); setNewUnit('');
       setShowAddModal(false);
@@ -172,7 +173,7 @@ export default function VendorScreen() {
   const toggleStock = async (product: any) => {
     const newStatus = !product.is_in_stock;
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_in_stock: newStatus } : p));
-    await supabase.from('products').update({ is_in_stock: newStatus }).eq('id', product.id);
+    await apiClient.patch(`/products/${product.id}`, { is_in_stock: newStatus });
   };
 
   if (loading) {

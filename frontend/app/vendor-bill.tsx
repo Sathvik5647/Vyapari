@@ -6,7 +6,7 @@ import {
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { supabase } from '../utils/supabase';
+import { apiClient } from '../utils/apiClient';
 import { Colors } from '../constants/theme';
 
 const theme = Colors.light;
@@ -41,12 +41,9 @@ export default function VendorBillScreen() {
 
   const fetchProducts = async () => {
     try {
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('store_id', storeId)
-        .eq('is_in_stock', true)
-        .order('name');
+      const data = await apiClient.get(
+        `/api/stores/${storeId}/products?in_stock_only=true`
+      );
       setProducts(data || []);
     } catch (e) {
       console.error(e);
@@ -99,8 +96,7 @@ export default function VendorBillScreen() {
     }
     try {
       setGenerating(true);
-      const { data, error } = await supabase.from('bills').insert({
-        store_id: storeId,
+      const data = await apiClient.post(`/api/stores/${storeId}/bills`, {
         items: billItems.map(i => ({
           product_id: i.productId,
           name: i.name,
@@ -109,9 +105,7 @@ export default function VendorBillScreen() {
           total: i.price * i.qty,
         })),
         total,
-      }).select().single();
-      
-      if (error) throw error;
+      });
       
       router.push({
         pathname: '/receipt',

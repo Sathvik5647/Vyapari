@@ -22,6 +22,7 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../utils/supabase";
+import { apiClient } from '../../utils/apiClient';
 
 const GOOGLE_MAPS_APIKEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const { width, height } = Dimensions.get("window");
@@ -133,14 +134,11 @@ export default function HomeScreen() {
     );
 
     // 2. Fetch stores
-    const { data, error } = await supabase
-      .from("stores")
-      .select("*, products(count)");
-
-    if (error) {
-      console.error("Error fetching stores", error);
-    } else {
+    try {
+      const data = await apiClient.get('/api/stores', false);
       setStores(data || []);
+    } catch (e) {
+      console.error('Error fetching stores', e);
     }
   };
 

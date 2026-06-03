@@ -5,7 +5,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { supabase } from '../utils/supabase';
+import { apiClient } from '../utils/apiClient';
 import { Colors } from '../constants/theme';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -30,8 +30,7 @@ export default function ReceiptScreen() {
 
   const fetchBill = async () => {
     try {
-      const { data, error } = await supabase.from('bills').select('*').eq('id', billId).single();
-      if (error) throw error;
+      const data = await apiClient.get(`/bills/${billId}`);
       setBill(data);
     } catch (e: any) {
       console.error(e);
@@ -148,7 +147,7 @@ export default function ReceiptScreen() {
       if (canShare) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: \`Receipt from \${storeName}\`,
+          dialogTitle: `Receipt from ${storeName}`,
         });
       }
     } catch (e: any) {
@@ -180,7 +179,7 @@ export default function ReceiptScreen() {
   const billDate = new Date(bill.created_at);
   const formattedDate = billDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const formattedTime = billDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  const shortId = \`#KL-\${bill.id.slice(0, 5).toUpperCase()}\`;
+  const shortId = `#KL-${bill.id.slice(0, 5).toUpperCase()}`;
   
   // Tax logic (placeholder 8% as per design)
   const subtotal = bill.total / 1.08;

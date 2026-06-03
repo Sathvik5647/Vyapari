@@ -2,7 +2,7 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, SafeAr
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useVendorContext } from './_layout';
-import { supabase } from '../../utils/supabase';
+import { apiClient } from '../../utils/apiClient';
 
 export default function VendorOnboardingProducts() {
   const [products, setProducts] = useState([{ id: 1, name: '', price: '' }]);
@@ -25,50 +25,25 @@ export default function VendorOnboardingProducts() {
   const handleComplete = async () => {
     try {
       setLoading(true);
-      const user = await supabase.auth.getUser();
-      const vendorId = user.data.user?.id;
-      
-      if (!vendorId) {
-        throw new Error("Not logged in. Session may have expired or email confirmation is required.");
-      }
 
-      // 1. Insert Store
-      const { data: storeData, error: storeError } = await supabase
-        .from('stores')
-        .insert({
-          vendor_id: vendorId,
-          name: data.name,
-          category: data.category,
-          phone: data.phone,
-          location_text: data.location || '',
-          latitude: data.latitude,
-          longitude: data.longitude,
-        })
-        .select('id')
-        .single();
+      // 1. Create Store
+      const storeData = await apiClient.post('/api/stores', {
+        name: data.name,
+        category: data.category,
+        phone: data.phone,
+        location_text: data.location || '',
+        latitude: data.latitude,
+        longitude: data.longitude,
+      });
 
-      if (storeError) {
-        console.error(storeError);
-        alert('Failed to save store');
-        return;
-      }
-
-      // 2. Insert Products
+      // 2. Add Products
       const validProducts = products.filter(p => p.name.trim() !== '');
-      if (validProducts.length > 0) {
-        const productsToInsert = validProducts.map(p => ({
-          store_id: storeData.id,
+      for (const p of validProducts) {
+        await apiClient.post(`/api/stores/${storeData.id}/products`, {
           name: p.name.trim(),
-          // Store as plain number — Supabase price column is numeric
           price: p.price ? parseFloat(p.price) : 0,
           is_in_stock: true,
-        }));
-
-        const { error: prodError } = await supabase.from('products').insert(productsToInsert);
-        if (prodError) {
-          console.error('Product save error:', prodError);
-          alert(`Product save failed: ${prodError.message}`);
-        }
+        });
       }
 
       // 3. Return to Dashboard

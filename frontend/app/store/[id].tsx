@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../utils/supabase";
+import { apiClient } from '../../utils/apiClient';
 
 export default function StoreProfileScreen() {
   const { id } = useLocalSearchParams();
@@ -43,14 +44,12 @@ export default function StoreProfileScreen() {
   }, [id]);
 
   const fetchStoreDetails = async () => {
-    const { data, error } = await supabase
-      .from("stores")
-      .select("*, products(*)")
-      .eq("id", id)
-      .single();
-
-    if (!error) {
-      setStore(data);
+    try {
+      const store = await apiClient.get(`/api/stores/${id}`, false);
+      const products = await apiClient.get(`/api/stores/${id}/products`, false);
+      setStore({ ...store, products });
+    } catch (e) {
+      console.error(e);
     }
     setLoading(false);
   };

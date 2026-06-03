@@ -1,6 +1,7 @@
 """
-Local Vendor App — FastAPI ML Backend
-Handles: Speech recognition (Whisper), NLP product parsing (spaCy),
+Local Vendor App — FastAPI Backend
+Handles: Auth (JWT), MySQL CRUD (stores/products/bills),
+         Speech recognition (Whisper), NLP product parsing (spaCy),
          Vision product identification (CLIP), Barcode lookup
 """
 
@@ -10,6 +11,10 @@ from contextlib import asynccontextmanager
 import logging
 
 from routers import speech, nlp, vision, barcode
+from routers import auth as auth_router
+from routers import data as data_router
+from database import engine
+import db_models
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,21 +22,18 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load ML models once at startup — keeps them warm for all requests."""
-    logger.info("⚡  Loading ML models...")
-
-    # Whisper — loaded lazily on first request to keep startup fast
-    # CLIP — same
-    # spaCy — same
-    logger.info("✅  FastAPI ML backend ready.")
+    """Create DB tables on startup (safe no-op if they already exist)."""
+    logger.info("⚡  Starting Vyapari backend...")
+    db_models.Base.metadata.create_all(bind=engine)
+    logger.info("✅  MySQL tables ready.")
     yield
     logger.info("🛑  Shutting down.")
 
 
 app = FastAPI(
-    title="Local Vendor App — ML API",
-    description="Speech, NLP, Vision, and Barcode endpoints for the Local Vendor App",
-    version="1.0.0",
+    title="Vyapari — Backend API",
+    description="Auth, CRUD, Speech, NLP, Vision, and Barcode endpoints for Vyapari",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -44,23 +46,21 @@ app.add_middleware(
 )
 
 # ── Routers ────────────────────────────────────────────────────────────────
-app.include_router(speech.router, prefix="/speech",  tags=["Speech"])
-app.include_router(nlp.router,    prefix="/nlp",     tags=["NLP"])
-app.include_router(vision.router, prefix="/vision",  tags=["Vision"])
-app.include_router(barcode.router,prefix="/barcode", tags=["Barcode"])
+app.include_router(auth_router.router, prefix="/auth",   tags=["Auth"])
+app.include_router(data_router.router, prefix="/api",    tags=["Data"])
+app.include_router(speech.router,      prefix="/speech", tags=["Speech"])
+app.include_router(nlp.router,         prefix="/nlp",    tags=["NLP"])
+app.include_router(vision.router,      prefix="/vision", tags=["Vision"])
+app.include_router(barcode.router,     prefix="/barcode",tags=["Barcode"])
 
 
 @app.get("/", tags=["Health"])
-def health():
+def root():
     return {
         "status": "ok",
-        "service": "local-vendor-ml-api",
-        "endpoints": [
-            "POST /speech/transcribe",
-            "POST /nlp/parse-product",
-            "POST /vision/identify-product",
-            "GET  /barcode/lookup/{barcode}",
-        ],
+        "service": "vyapari-backend",
+        "version": "2.0.0",
+        "docs": "/docs",
     }
 
 
