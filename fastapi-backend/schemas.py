@@ -10,6 +10,7 @@ from datetime import datetime
 class SignupRequest(BaseModel):
     email: EmailStr
     password: str
+    role: Optional[str] = "customer"  # 'customer' or 'vendor'
 
 
 class LoginRequest(BaseModel):
@@ -21,6 +22,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: str
+    role: str = "customer"
 
 
 # ── Store ─────────────────────────────────────────────────────

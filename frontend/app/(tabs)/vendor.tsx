@@ -6,12 +6,12 @@ import {
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { supabase } from '../../utils/supabase';
 import { apiClient } from '../../utils/apiClient';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { ML_API } from '../../utils/api';
 import { Colors } from '../../constants/theme';
+import { useAuth } from '../../context/AuthContext';
 
 const theme = Colors.light;
 
@@ -155,12 +155,12 @@ export default function VendorScreen() {
       setAddingProduct(true);
       const priceNum = newPrice.trim() ? parseFloat(newPrice.trim().replace(/[^0-9.]/g, '')) : 0;
       const displayName = newUnit.trim() ? `${newName.trim()} (${newUnit.trim()})` : newName.trim();
-      const { data, error } = await apiClient.post(`/api/stores/${store.id}/products`, {
+      const newProduct = await apiClient.post(`/api/stores/${store.id}/products`, {
         name: displayName,
         price: priceNum,
         is_in_stock: true,
       });
-      setProducts(prev => [...prev, data]);
+      setProducts(prev => [...prev, newProduct]);
       setNewName(''); setNewPrice(''); setNewUnit('');
       setShowAddModal(false);
     } catch (e: any) {

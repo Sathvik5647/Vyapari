@@ -1,10 +1,13 @@
 """
 db_models.py — SQLAlchemy ORM models (tables in MySQL)
 """
+# pyrefly: ignore [missing-import]
 from sqlalchemy import (
     Column, String, Float, Boolean, Text, DateTime, ForeignKey, Integer, JSON
 )
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import relationship
+# pyrefly: ignore [missing-import]
 from sqlalchemy.sql import func
 import uuid
 
@@ -21,6 +24,8 @@ class User(Base):
     id = Column(String(36), primary_key=True, default=new_uuid)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
+    # 'customer' (default) or 'vendor'
+    role = Column(String(20), nullable=False, default="customer")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

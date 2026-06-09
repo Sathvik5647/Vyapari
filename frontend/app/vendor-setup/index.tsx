@@ -1,14 +1,15 @@
 import {
   StyleSheet, View, Text, TextInput, TouchableOpacity,
-  SafeAreaView, Platform, StatusBar, ActivityIndicator,
+  Platform, StatusBar, ActivityIndicator,
   KeyboardAvoidingView, ScrollView, Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { logIn, signUp } from '../../utils/auth';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { logIn, signUp, UserRole } from '../../utils/auth';
 import { apiClient } from '../../utils/apiClient';
-import { useVendorContext } from './_layout';
+import { useAuth } from '../../context/AuthContext';
 import { Colors } from '../../constants/theme';
 
 const theme = Colors.light;
@@ -19,10 +20,11 @@ export default function VendorAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('customer');
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
-  const { updateData } = useVendorContext();
+  const { refresh } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -31,15 +33,20 @@ export default function VendorAuth() {
     }
     try {
       setLoading(true);
-      await logIn(email.trim().toLowerCase(), password);
+      const user = await logIn(email.trim().toLowerCase(), password);
+      await refresh();
 
-      // Check if vendor already has a store
-      try {
-        await apiClient.get('/api/stores/mine');
-        router.replace('/(tabs)/vendor');
-      } catch {
-        // 404 means no store yet
-        router.push('/vendor-setup/details');
+      if (user.role === 'vendor') {
+        // Check if vendor already has a store
+        try {
+          await apiClient.get('/api/stores/mine');
+          router.replace('/(tabs)/vendor');
+        } catch {
+          router.push('/vendor-setup/details');
+        }
+      } else {
+        // Customer — just go to the map
+        router.replace('/(tabs)');
       }
     } catch (e: any) {
       Alert.alert('Login failed', e.message || 'Invalid email or password.');
@@ -59,8 +66,14 @@ export default function VendorAuth() {
     }
     try {
       setLoading(true);
-      await signUp(email.trim().toLowerCase(), password);
-      router.push('/vendor-setup/details');
+      await signUp(email.trim().toLowerCase(), password, selectedRole);
+      await refresh();
+
+      if (selectedRole === 'vendor') {
+        router.push('/vendor-setup/details');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (e: any) {
       Alert.alert('Sign up failed', e.message || 'Could not create account.');
     } finally {
@@ -71,7 +84,7 @@ export default function VendorAuth() {
   const submit = () => (tab === 'login' ? handleLogin() : handleSignUp());
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -83,9 +96,9 @@ export default function VendorAuth() {
             <View style={[styles.logoCircle, { backgroundColor: theme.primary }]}>
               <Ionicons name="storefront" size={32} color="#FFF" />
             </View>
-            <Text style={[styles.brandName, { color: theme.onSurface }]}>Vendor Portal</Text>
+            <Text style={[styles.brandName, { color: theme.onSurface }]}>Vyapari</Text>
             <Text style={[styles.brandSub, { color: theme.onSurfaceVariant }]}>
-              Manage your store, products & bills
+              Connecting local vendors to their community
             </Text>
           </View>
 
@@ -142,6 +155,46 @@ export default function VendorAuth() {
               </TouchableOpacity>
             </View>
 
+            {/* Role Picker — only on signup */}
+            {tab === 'signup' && (
+              <>
+                <Text style={[styles.label, { color: theme.onSurfaceVariant, marginTop: 4 }]}>I am a...</Text>
+                <View style={styles.roleRow}>
+                  {([
+                    { role: 'customer', icon: 'person-outline', label: 'Customer', sub: 'Browse & discover' },
+                    { role: 'vendor', icon: 'storefront', label: 'Vendor', sub: 'Sell locally' },
+                  ] as { role: UserRole; icon: string; label: string; sub: string }[]).map(option => (
+                    <TouchableOpacity
+                      key={option.role}
+                      style={[
+                        styles.roleCard,
+                        {
+                          borderColor: selectedRole === option.role ? theme.primary : theme.outlineVariant,
+                          backgroundColor: selectedRole === option.role ? theme.primary + '10' : theme.surfaceContainerLowest,
+                        },
+                      ]}
+                      onPress={() => setSelectedRole(option.role)}
+                    >
+                      <MaterialIcons
+                        name={option.icon as any}
+                        size={24}
+                        color={selectedRole === option.role ? theme.primary : theme.onSurfaceVariant}
+                      />
+                      <Text style={[styles.roleLabel, { color: selectedRole === option.role ? theme.primary : theme.onSurface }]}>
+                        {option.label}
+                      </Text>
+                      <Text style={[styles.roleSub, { color: theme.onSurfaceVariant }]}>{option.sub}</Text>
+                      {selectedRole === option.role && (
+                        <View style={styles.roleCheck}>
+                          <MaterialIcons name="check-circle" size={16} color={theme.primary} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
             {/* Submit */}
             <TouchableOpacity
               style={[styles.submitBtn, { backgroundColor: theme.primary, opacity: loading ? 0.7 : 1 }]}
@@ -161,14 +214,24 @@ export default function VendorAuth() {
               style={{ marginTop: 16, alignItems: 'center' }}
               onPress={() => { setTab(tab === 'login' ? 'signup' : 'login'); setPassword(''); }}
             >
-              <Text style={{ color: theme.onSurfaceVariant, fontSize: 13 }}>
+              <Text style={{ color: theme.onSurfaceVariant, fontFamily: 'PlusJakartaSans_400Regular', fontSize: 13 }}>
                 {tab === 'login' ? "Don't have an account? " : 'Already have an account? '}
-                <Text style={{ color: theme.primary, fontWeight: '700' }}>
+                <Text style={{ color: theme.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
                   {tab === 'login' ? 'Sign Up' : 'Log In'}
                 </Text>
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Continue without account */}
+          <TouchableOpacity
+            style={styles.skipBtn}
+            onPress={() => router.replace('/(tabs)')}
+          >
+            <Text style={[styles.skipText, { color: theme.onSurfaceVariant }]}>
+              Continue without account →
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -176,10 +239,10 @@ export default function VendorAuth() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+  safe: { flex: 1, backgroundColor: '#f4fafd' },
   scroll: { padding: 24, paddingBottom: 48 },
 
-  brandRow: { alignItems: 'center', marginBottom: 32, marginTop: 24 },
+  brandRow: { alignItems: 'center', marginBottom: 32, marginTop: 16 },
   logoCircle: {
     width: 72, height: 72, borderRadius: 36,
     alignItems: 'center', justifyContent: 'center',
@@ -187,7 +250,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35, shadowRadius: 12, elevation: 8,
   },
-  brandName: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 26, letterSpacing: -0.5, marginBottom: 6 },
+  brandName: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 28, letterSpacing: -0.5, marginBottom: 4 },
   brandSub: { fontFamily: 'PlusJakartaSans_400Regular', fontSize: 14, textAlign: 'center' },
 
   tabBar: { flexDirection: 'row', borderRadius: 14, borderWidth: 1, padding: 4, marginBottom: 20 },
@@ -195,15 +258,34 @@ const styles = StyleSheet.create({
   tabBtnText: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 15 },
 
   card: { borderRadius: 20, borderWidth: 1, padding: 24 },
-  label: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 },
+  label: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 },
   inputRow: {
     flexDirection: 'row', alignItems: 'center',
     borderRadius: 12, borderWidth: 1, height: 52, marginBottom: 18,
   },
   input: { flex: 1, height: '100%', paddingHorizontal: 12, fontFamily: 'PlusJakartaSans_400Regular', fontSize: 15 },
+
+  // Role picker
+  roleRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  roleCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    gap: 6,
+    position: 'relative',
+  },
+  roleLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 14 },
+  roleSub: { fontFamily: 'PlusJakartaSans_400Regular', fontSize: 11, textAlign: 'center' },
+  roleCheck: { position: 'absolute', top: 8, right: 8 },
+
   submitBtn: {
     height: 52, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
-  submitBtnText: { color: '#FFF', fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 16, letterSpacing: 0.2 },
+  submitBtnText: { color: '#FFF', fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 16 },
+
+  skipBtn: { alignItems: 'center', marginTop: 24 },
+  skipText: { fontFamily: 'PlusJakartaSans_400Regular', fontSize: 14 },
 });

@@ -38,6 +38,12 @@ export const Colors = {
     error: '#ba1a1a',
     errorContainer: '#ffdad6',
     onErrorContainer: '#93000a',
+    // Inverse & tertiary
+    inverseSurface: '#2b3234',
+    inverseOnSurface: '#ebf2f4',
+    tertiaryFixed: '#e6e2da',
+    onTertiaryFixed: '#1c1c17',
+    onPrimaryFixed: '#331200',
   },
   dark: {
     text: '#ECEDEE',

@@ -1,8 +1,11 @@
 """
 database.py — SQLAlchemy engine + session factory for MySQL
 """
+# pyrefly: ignore [missing-import]
 from sqlalchemy import create_engine
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 import os
 
